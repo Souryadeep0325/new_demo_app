@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:news_app/news-schema/news_model.dart';
@@ -11,7 +12,10 @@ class NewsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Top Headlines')),
+      appBar: AppBar(title: Text('Top Headlines',
+        style: const TextStyle(color: Colors.blue,fontSize: 18, fontWeight: FontWeight.bold,),
+
+      )),
       body: NewsList(newsArticles: newsArticles), // Pass data to the List widget
     );
   }

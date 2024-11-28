@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:news_app/news-schema/news_model.dart';
 import 'package:news_app/news_ui/news_list.dart';
+import 'package:intl/intl.dart';
 import 'package:news_app/news_ui/news_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -22,7 +23,7 @@ class _SplashScreenState extends State<SplashScreen> {
   // Function to fetch news from API
   Future<List<NewsModel>> fetchNews() async {
     final response = await http.get(Uri.parse(
-      'https://newsapi.org/v2/top-headlines?country=us&apiKey=YOUR_API_KEY',
+      'https://newsapi.org/v2/top-headlines?country=us&apiKey=39c1ac3e795348d5b64f81a338b1cc77',
     ));
 
     if (response.statusCode == 200) {
@@ -30,7 +31,12 @@ class _SplashScreenState extends State<SplashScreen> {
       List articles = data['articles'];
 
       return articles.map((article) {
-        article['publishedAt'] = getFormattedDate(article['publishedAt']);
+        DateTime publishedDate = DateTime.parse(article['publishedAt']);
+
+        // Format the date as per your requirement
+        String formattedDate = DateFormat('MM/dd/yyyy hh:mm a').format(publishedDate);
+
+        article['publishedAt'] = formattedDate;
         return NewsModel.fromJson(article);}).toList();
     } else {
       throw Exception('Failed to load news');

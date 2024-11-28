@@ -24,8 +24,9 @@ class NewsCard extends StatelessWidget {
           _buildImage(), // Extract image handling into a separate method
           _buildTitle(), // Extract title to a method
           _buildDescription(), // Extract description to a method
-          _buildPublishedDate(), // Extract published date to a method
-          _buildReadMoreButton(), // Extract button to a method
+           // Extract published date to a method
+          _buildPublishedSource(),
+          _buildPublishedDate(),// Extract button to a method
         ],
       ),
     );
@@ -36,9 +37,9 @@ class NewsCard extends StatelessWidget {
     return article.urlToImage.isNotEmpty
         ? Image.network(
       article.urlToImage,
-      height: 500,
+      height: 100,
       width: double.infinity,
-      fit: BoxFit.scaleDown,
+      fit: BoxFit.fill,
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) {
           return child;
@@ -68,7 +69,7 @@ class NewsCard extends StatelessWidget {
       padding: const EdgeInsets.all(8.0),
       child: Text(
         article.title,
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -80,17 +81,28 @@ class NewsCard extends StatelessWidget {
       child: Text(
         article.description,
         style: TextStyle(color: Colors.grey[600]),
+        maxLines: 4,
+        overflow: TextOverflow.visible,
       ),
     );
   }
 
+  Widget _buildPublishedSource() {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Text(
+        'Source: ${article.sourceName}',
+        style: TextStyle(fontSize: 12, color: Colors.blue[300]),
+      ),
+    );
+  }
   // Extracted method to handle published date
   Widget _buildPublishedDate() {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: Text(
-        'Published on: ${article.publishedAt}}',
-        style: TextStyle(fontSize: 12, color: Colors.grey),
+        'Published on: ${article.publishedAt}',
+        style: TextStyle(fontSize: 12, color: Colors.blue[200]),
       ),
     );
   }
@@ -106,18 +118,5 @@ class NewsCard extends StatelessWidget {
         child: Text('Read more'),
       ),
     );
-  }
-
-  // Format the date string and extract only the date part (yyyy-MM-dd)
-  String getFormattedDate(String dateStr) {
-    try {
-      DateTime dateTime = DateTime.parse(dateStr);
-      // Extract the date part in 'yyyy-MM-dd' format
-      String formattedDate = "${dateTime.year.toString().padLeft(4, '0')}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}";
-      return formattedDate;
-    } catch (e) {
-      // If there is an error parsing the date, return a default value
-      return 'Invalid date';  // Return a fallback string if the date is invalid
-    }
   }
 }
