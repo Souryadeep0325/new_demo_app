@@ -13,12 +13,13 @@ class SplashScreen extends StatefulWidget {
 }
 
 class SplashScreenState extends State<SplashScreen> {
-    late SplashScreenStore splashScreenStore;
+  late SplashScreenStore splashScreenStore;
 
   @override
   void initState() {
     super.initState();
-    splashScreenStore = context.read<SplashScreenStore>(); // Read the store from provider
+    splashScreenStore =
+        context.read<SplashScreenStore>(); // Read the store from provider
     splashScreenStore.fetchNews(); // Trigger the news fetch on screen load
   }
 

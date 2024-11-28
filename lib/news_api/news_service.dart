@@ -11,7 +11,6 @@ class NewsService {
   DateTime? _lastFetchedTime;
   Observable<bool> orderDetailLoaded = Observable(false);
 
-
   Future<bool> _hasInternetConnection() async {
     final connectivityResult = await Connectivity().checkConnectivity();
     return connectivityResult != ConnectivityResult.none;
@@ -22,7 +21,8 @@ class NewsService {
 
     if (_cachedNews != null &&
         _lastFetchedTime != null &&
-        currentTime.difference(_lastFetchedTime!) < Constants.cacheExpiryDuration) {
+        currentTime.difference(_lastFetchedTime!) <
+            Constants.cacheExpiryDuration) {
       return _cachedNews!;
     }
 
@@ -38,7 +38,7 @@ class NewsService {
           List<NewsModel> newsArticles = articles.map((article) {
             DateTime publishedDate = DateTime.parse(article['publishedAt']);
             String formattedDate =
-            DateFormat('MM/dd/yyyy hh:mm a').format(publishedDate);
+                DateFormat('MM/dd/yyyy hh:mm a').format(publishedDate);
             article['publishedAt'] = formattedDate;
             return NewsModel.fromJson(article);
           }).toList();
@@ -54,7 +54,8 @@ class NewsService {
         if (_cachedNews != null) {
           return _cachedNews!;
         } else {
-          throw Exception('No internet connection and no cached data available');
+          throw Exception(
+              'No internet connection and no cached data available');
         }
       }
     } catch (e) {
