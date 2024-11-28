@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:news_app/news-schema/news_model.dart';
 import 'package:news_app/news_ui/constant.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:news_app/news_ui/splash_screen.dart';
 
 class NewsDetailPage extends StatelessWidget {
   final NewsModel article;
-
+  final SplashScreen splashScreen = const SplashScreen();
   const NewsDetailPage({super.key, required this.article});
 
   @override
@@ -23,6 +24,14 @@ class NewsDetailPage extends StatelessWidget {
         backgroundColor: Constants.primaryColor,
         elevation: 1,
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            // Call reload before popping the screen
+            print('hi');
+            Navigator.pop(context); // Close the detail page and go back
+          },
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(Constants.padding * 2),
