@@ -33,14 +33,4 @@ class NewsModel {
       sourceName: json['source']['name'] ?? 'Unknown', // Source name from the 'source' object
     );
   }
-
-  // Method to format the published date into a more user-friendly format
-  String getFormattedDate(String publishedDate) {
-    try {
-      DateTime parsedDate = DateTime.parse(publishedAt);
-      return '${parsedDate.day}-${parsedDate.month}-${parsedDate.year} ${parsedDate.hour}:${parsedDate.minute}';
-    } catch (e) {
-      return publishedAt; // Return the raw string if parsing fails
-    }
-  }
 }

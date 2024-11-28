@@ -28,7 +28,10 @@ class _SplashScreenState extends State<SplashScreen> {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       List articles = data['articles'];
-      return articles.map((article) => NewsModel.fromJson(article)).toList();
+
+      return articles.map((article) {
+        article['publishedAt'] = getFormattedDate(article['publishedAt']);
+        return NewsModel.fromJson(article);}).toList();
     } else {
       throw Exception('Failed to load news');
     }
@@ -74,4 +77,17 @@ class _SplashScreenState extends State<SplashScreen> {
       },
     );
   }
+
+  String getFormattedDate(String dateStr) {
+    try {
+      DateTime dateTime = DateTime.parse(dateStr);
+      // Extract the date part in 'yyyy-MM-dd' format
+      String formattedDate = "${dateTime.year.toString().padLeft(4, '0')}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}";
+      return formattedDate;
+    } catch (e) {
+      // If there is an error parsing the date, return a default value
+      return 'Invalid date';  // Return a fallback string if the date is invalid
+    }
+  }
+
 }
