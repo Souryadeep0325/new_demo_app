@@ -100,38 +100,38 @@ class NewsDetailPage extends StatelessWidget {
             ),
 
             const SizedBox(height: Constants.spacer),
-          GestureDetector(
-          onTap: () async {
-            final Uri url = Uri.parse(article.url);
+            GestureDetector(
+              onTap: () async {
+                final Uri url = Uri.parse(article.url);
 
-    // Check if the platform is mobile (iOS/Android) or web
-    if (kIsWeb) {
-    // Open URL in external browser for web
-    if (await canLaunchUrl(url)) {
-    await launchUrl(url);
-    } else {
-    throw 'Could not launch $url';
-    }
-    } else {
-    // For iOS/Android, open in WebView within the app
-    Navigator.push(
-    context,
-    MaterialPageRoute(
-    builder: (context) => WebViewPage(url: url.toString()),
-    ),
-    );
-    }
-    },
-      child: const Text(
-        'Read full article',
-        style: TextStyle(
-          fontSize: 16,
-          color: Colors.blue,
-          decoration: TextDecoration.underline,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    ),
+                // Check if the platform is mobile (iOS/Android) or web
+                if (kIsWeb) {
+                  // Open URL in external browser for web
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url);
+                  } else {
+                    throw 'Could not launch $url';
+                  }
+                } else {
+                  // For iOS/Android, open in WebView within the app
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => WebViewPage(url: url.toString()),
+                    ),
+                  );
+                }
+              },
+              child: const Text(
+                'Read full article',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.blue,
+                  decoration: TextDecoration.underline,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -184,7 +184,6 @@ class NewsDetailPage extends StatelessWidget {
           );
   }
 }
-
 
 class WebViewPage extends StatefulWidget {
   final String url;
