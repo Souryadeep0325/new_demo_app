@@ -1,20 +1,27 @@
-
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:news_app/news_ui/splash_screen.dart';
+import 'package:news_app/news_ui/splash_screen_store.dart'; // Import the store
 
-void main() => runApp(const MyApp());
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [
+        Provider(create: (_) => SplashScreenStore()), // Provide the store
+      ],
+      child: const MyApp(),
+    ),
+  );
+}
 
-// Main App Widget
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter News App',
-      theme: ThemeData(primarySwatch: Colors.green),
-      home: const SplashScreen(),
+    return const MaterialApp(
+      title: 'News App',
+      home: SplashScreen(),
     );
   }
 }
-

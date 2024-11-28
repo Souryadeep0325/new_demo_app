@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class Constants {
-  static const cacheExpiryDuration = Duration(minutes: 5);
+  static const cacheExpiryDuration = Duration(minutes: 2);
 
   static const String apiUrl = 'https://newsapi.org/v2/top-headlines';
   static const String apiKey = '39c1ac3e795348d5b64f81a338b1cc77';

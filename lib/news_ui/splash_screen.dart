@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:news_app/news-schema/news_model.dart';
 import 'package:news_app/news_ui/news_screen.dart';
-import 'package:news_app/news_api/news_service.dart';
 import 'package:news_app/news_ui/constant.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:provider/provider.dart';
+import 'splash_screen_store.dart'; // Import the store
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -12,40 +13,23 @@ class SplashScreen extends StatefulWidget {
 }
 
 class SplashScreenState extends State<SplashScreen> {
-  late Future<List<NewsModel>> newsArticles;
-  bool hasError = false;
-  final NewsService newsService = NewsService();
+    late SplashScreenStore splashScreenStore;
 
   @override
   void initState() {
     super.initState();
-    newsArticles = fetchNews();
-  }
-
-  Future<List<NewsModel>> fetchNews() async {
-    try {
-      final data = await newsService.fetchNews();
-      return data;
-    } catch (e) {
-      setState(() {
-        hasError = true;
-      });
-      rethrow;
-    }
-  }
-
-  void reload() {
-    setState(() {
-      hasError = false;
-      newsArticles = fetchNews();
-    });
+    splashScreenStore = context.read<SplashScreenStore>(); // Read the store from provider
+    splashScreenStore.fetchNews(); // Trigger the news fetch on screen load
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: hasError
-          ? Center(
+    return Observer(
+      builder: (context) {
+        // This will reactively rebuild the widget when `newsLoaded` or `hasError` changes.
+        if (splashScreenStore.hasError) {
+          return Scaffold(
+            body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -64,7 +48,7 @@ class SplashScreenState extends State<SplashScreen> {
                   ),
                   const SizedBox(height: Constants.spacer),
                   ElevatedButton(
-                    onPressed: reload,
+                    onPressed: splashScreenStore.reload, // Trigger reload
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Constants.primaryColor,
                     ),
@@ -72,42 +56,32 @@ class SplashScreenState extends State<SplashScreen> {
                   ),
                 ],
               ),
-            )
-          : FutureBuilder<List<NewsModel>>(
-              future: newsArticles,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Scaffold(
-                    body: Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                  );
-                } else if (snapshot.hasError) {
-                  return const Scaffold(
-                    body: Center(
-                      child: Text(
-                        Constants.errorMessage,
-                        style: TextStyle(
-                          fontSize: Constants.regularFontSize,
-                          color: Constants.primaryColor,
-                        ),
-                      ),
-                    ),
-                  );
-                } else if (snapshot.hasData) {
-                  return NewsScreen(newsArticles: snapshot.data!);
-                } else {
-                  return const Scaffold(
-                    body: Center(
-                      child: Text(
-                        Constants.noDataMessage,
-                        style: TextStyle(fontSize: Constants.regularFontSize),
-                      ),
-                    ),
-                  );
-                }
-              },
             ),
+          );
+        }
+
+        if (!splashScreenStore.newsLoaded) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (splashScreenStore.newsArticles.isEmpty) {
+          return const Scaffold(
+            body: Center(
+              child: Text(
+                Constants.noDataMessage,
+                style: TextStyle(fontSize: Constants.regularFontSize),
+              ),
+            ),
+          );
+        }
+
+        // If the data is loaded successfully
+        return NewsScreen(newsArticles: splashScreenStore.newsArticles);
+      },
     );
   }
 }

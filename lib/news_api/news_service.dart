@@ -3,11 +3,13 @@ import 'package:http/http.dart' as http;
 import 'package:news_app/news-schema/news_model.dart';
 import 'package:intl/intl.dart';
 import 'package:news_app/news_ui/constant.dart';
+import 'package:mobx/mobx.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 class NewsService {
   List<NewsModel>? _cachedNews;
   DateTime? _lastFetchedTime;
+  Observable<bool> orderDetailLoaded = Observable(false);
 
 
   Future<bool> _hasInternetConnection() async {
