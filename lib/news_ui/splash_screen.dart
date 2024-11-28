@@ -1,99 +1,113 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:news_app/news-schema/news_model.dart';
-import 'package:news_app/news_ui/news_list.dart';
-import 'package:intl/intl.dart';
 import 'package:news_app/news_ui/news_screen.dart';
+import 'package:news_app/news_api/news_service.dart';
+import 'package:news_app/news_ui/constant.dart';
 
 class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
   @override
-  _SplashScreenState createState() => _SplashScreenState();
+  SplashScreenState createState() => SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class SplashScreenState extends State<SplashScreen> {
   late Future<List<NewsModel>> newsArticles;
+  bool hasError = false;
+  final NewsService newsService = NewsService();
 
   @override
   void initState() {
     super.initState();
-    newsArticles = fetchNews(); // Fetch news when splash screen loads
+    newsArticles = fetchNews();
   }
 
-  // Function to fetch news from API
   Future<List<NewsModel>> fetchNews() async {
-    final response = await http.get(Uri.parse(
-      'https://newsapi.org/v2/top-headlines?country=us&apiKey=39c1ac3e795348d5b64f81a338b1cc77',
-    ));
-
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      List articles = data['articles'];
-
-      return articles.map((article) {
-        DateTime publishedDate = DateTime.parse(article['publishedAt']);
-
-        // Format the date as per your requirement
-        String formattedDate = DateFormat('MM/dd/yyyy hh:mm a').format(publishedDate);
-
-        article['publishedAt'] = formattedDate;
-        return NewsModel.fromJson(article);}).toList();
-    } else {
-      throw Exception('Failed to load news');
+    try {
+      final data = await newsService.fetchNews();
+      return data;
+    } catch (e) {
+      setState(() {
+        hasError = true;
+      });
+      rethrow;
     }
+  }
+
+  void reload() {
+    setState(() {
+      hasError = false;
+      newsArticles = fetchNews();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<NewsModel>>(
-      future: newsArticles, // Wait for the news data
-      builder: (context, snapshot) {
-        // While waiting for data, show a loader
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
+    return Scaffold(
+      body: hasError
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Constants.primaryColor,
+                    size: Constants.iconSize,
+                  ),
+                  const SizedBox(height: Constants.spacer),
+                  const Text(
+                    Constants.errorMessage,
+                    style: TextStyle(
+                      fontSize: Constants.regularFontSize,
+                      color: Constants.tertiaryColor,
+                    ),
+                  ),
+                  const SizedBox(height: Constants.spacer),
+                  ElevatedButton(
+                    onPressed: reload,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Constants.primaryColor,
+                    ),
+                    child: const Text(Constants.reloadButtonText),
+                  ),
+                ],
+              ),
+            )
+          : FutureBuilder<List<NewsModel>>(
+              future: newsArticles,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Scaffold(
+                    body: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                } else if (snapshot.hasError) {
+                  return const Scaffold(
+                    body: Center(
+                      child: Text(
+                        Constants.errorMessage,
+                        style: TextStyle(
+                          fontSize: Constants.regularFontSize,
+                          color: Constants.primaryColor,
+                        ),
+                      ),
+                    ),
+                  );
+                } else if (snapshot.hasData) {
+                  return NewsScreen(newsArticles: snapshot.data!);
+                } else {
+                  return const Scaffold(
+                    body: Center(
+                      child: Text(
+                        Constants.noDataMessage,
+                        style: TextStyle(fontSize: Constants.regularFontSize),
+                      ),
+                    ),
+                  );
+                }
+              },
             ),
-          );
-        }
-
-        // If there's an error, show error message
-        else if (snapshot.hasError) {
-          return Scaffold(
-            body: Center(
-              child: Text('Error: ${snapshot.error}', style: TextStyle(fontSize: 18)),
-            ),
-          );
-        }
-
-        // If the data is fetched successfully, navigate to NewsScreen
-        else if (snapshot.hasData) {
-          // Navigate to the NewsScreen once data is ready
-          return NewsScreen(newsArticles: snapshot.data!);
-        }
-
-        // If no data, show a placeholder message
-        else {
-          return Scaffold(
-            body: Center(
-              child: Text('No data available', style: TextStyle(fontSize: 18)),
-            ),
-          );
-        }
-      },
     );
   }
-
-  String getFormattedDate(String dateStr) {
-    try {
-      DateTime dateTime = DateTime.parse(dateStr);
-      // Extract the date part in 'yyyy-MM-dd' format
-      String formattedDate = "${dateTime.year.toString().padLeft(4, '0')}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}";
-      return formattedDate;
-    } catch (e) {
-      // If there is an error parsing the date, return a default value
-      return 'Invalid date';  // Return a fallback string if the date is invalid
-    }
-  }
-
 }

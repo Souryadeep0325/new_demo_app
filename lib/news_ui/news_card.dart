@@ -1,86 +1,101 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:news_app/news-schema/news_model.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:intl/intl.dart';
+
+import 'package:news_app/news_ui/constant.dart';
 
 class NewsCard extends StatelessWidget {
   final NewsModel article;
 
-  NewsCard({required this.article});
+  const NewsCard({super.key, required this.article});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: EdgeInsets.all(10),
+      margin: const EdgeInsets.all(Constants.padding * 2),
       elevation: 5,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15), // Set the radius of rounded corners
+        borderRadius: BorderRadius.circular(Constants.padding * 2),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildImage(), // Extract image handling into a separate method
-          _buildTitle(), // Extract title to a method
-          _buildDescription(), // Extract description to a method
-           // Extract published date to a method
+          _buildImage(),
+          _buildTitle(),
+          _buildDescription(),
           _buildPublishedSource(),
-          _buildPublishedDate(),// Extract button to a method
+          _buildPublishedDate(),
         ],
       ),
     );
   }
 
-  // Extracted method to handle image display
   Widget _buildImage() {
     return article.urlToImage.isNotEmpty
         ? Image.network(
-      article.urlToImage,
-      height: 100,
-      width: double.infinity,
-      fit: BoxFit.fill,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) {
-          return child;
-        } else {
-          return Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null
-                  ? loadingProgress.cumulativeBytesLoaded /
-                  (loadingProgress.expectedTotalBytes ?? 1)
-                  : null,
-            ),
-          );
-        }
-      },
-      errorBuilder: (context, error, stackTrace) {
-        return Container(
-            height: 200, color: Colors.grey); // Fallback if image fails
-      },
-    )
+            article.urlToImage,
+            height: Constants.height,
+            width: double.infinity,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) {
+                return child;
+              } else {
+                return Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            (loadingProgress.expectedTotalBytes ?? 1)
+                        : null,
+                  ),
+                );
+              }
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                height: Constants.height,
+                color: Constants.secondaryColor,
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.error_outline,
+                  color: Constants.primaryColor,
+                  size: Constants.iconSize,
+                ),
+              );
+            },
+          )
         : Container(
-        height: 200, color: Colors.grey); // Fallback if no image URL
+            height: Constants.height,
+            color: Constants.secondaryColor,
+            alignment: Alignment.center,
+            child: const Icon(
+              Icons.error_outline,
+              color: Constants.primaryColor,
+              size: Constants.iconSize,
+            ),
+          ); // Fallback if no image URL
   }
 
-  // Extracted method to handle article title
   Widget _buildTitle() {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(Constants.padding),
       child: Text(
         article.title,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        style: const TextStyle(
+            fontSize: Constants.titleFontSize,
+            fontWeight: FontWeight.bold,
+            color: Constants.primaryColor),
       ),
     );
   }
 
-  // Extracted method to handle article description
   Widget _buildDescription() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      padding: const EdgeInsets.symmetric(horizontal: Constants.padding),
       child: Text(
         article.description,
-        style: TextStyle(color: Colors.grey[600]),
+        style: const TextStyle(
+            color: Constants.tertiaryColor,
+            fontSize: Constants.regularFontSize),
         maxLines: 4,
         overflow: TextOverflow.visible,
       ),
@@ -89,33 +104,27 @@ class NewsCard extends StatelessWidget {
 
   Widget _buildPublishedSource() {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(Constants.padding),
       child: Text(
-        'Source: ${article.sourceName}',
-        style: TextStyle(fontSize: 12, color: Colors.blue[300]),
-      ),
-    );
-  }
-  // Extracted method to handle published date
-  Widget _buildPublishedDate() {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Text(
-        'Published on: ${article.publishedAt}',
-        style: TextStyle(fontSize: 12, color: Colors.blue[200]),
+        '${Constants.source}  ${article.sourceName}',
+        style: const TextStyle(
+            fontSize: Constants.regularFontSize,
+            color: Constants.secondaryColor),
       ),
     );
   }
 
-  // Extracted method to handle the 'Read more' button
-  Widget _buildReadMoreButton() {
+  Widget _buildPublishedDate() {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: ElevatedButton(
-        onPressed: () {
-          // Add functionality to navigate to a web view screen or open the article URL
-        },
-        child: Text('Read more'),
+      padding: const EdgeInsets.only(
+          left: Constants.padding,
+          right: Constants.padding,
+          bottom: Constants.padding),
+      child: Text(
+        '${Constants.publishedOn} ${article.publishedAt}',
+        style: const TextStyle(
+            fontSize: Constants.regularFontSize,
+            color: Constants.secondaryColor),
       ),
     );
   }
