@@ -1,16 +1,38 @@
 # news_app
 
-A new Flutter project.
+A new Flutter News App project.
 
 ## Getting Started
 
 This project is a starting point for a Flutter application.
 
-A few resources to get you started if this is your first Flutter project:
+Prerequisites
+1.Flutter SDK installed.
+2.A code editor like VS Code or Android Studio.
+3.A physical device or emulator/simulator for testing.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Installations:
+1.Install dependencies:
+Run the following command to install the required packages:
+flutter pub get
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+2.Run the app:
+If you are using an emulator or a physical device, run:
+flutter run
+
+3.For iOS:
+Open ios/Runner.xcworkspace in Xcode and ensure all dependencies are resolved.
+Run the app using Xcode or the Flutter CLI.
+
+4.For iOS (if you're working with iOS):
+Open ios/Runner.xcworkspace in Xcode and ensure all dependencies are resolved.
+Run the app using Xcode or the Flutter CLI.
+
+
+
+Summary of Key Features:
+Two Screens: Headlines Screen and Article Detail Screen.
+State Management: Uses MobX for state management.
+WebView: Allows users to view articles within the app.
+URL Launcher: Provides the option to launch URLs in an external web browser.
+Asynchronous Network Requests: Fetches data from a news API.
