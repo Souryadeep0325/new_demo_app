@@ -25,7 +25,8 @@ class MyApp extends StatelessWidget {
       builder: (context, themeNotifier, _) {
         return MaterialApp(
           title: 'News App',
-          theme: themeNotifier.isDarkMode ? ThemeData.dark() : ThemeData.light(),
+          theme:
+              themeNotifier.isDarkMode ? ThemeData.dark() : ThemeData.light(),
           home: const SplashScreen(),
         );
       },
