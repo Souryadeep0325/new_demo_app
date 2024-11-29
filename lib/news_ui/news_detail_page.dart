@@ -210,7 +210,7 @@ class _WebViewPageState extends State<WebViewPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('WebView'),
+        backgroundColor: Constants.primaryColor,
       ),
       body: WebViewWidget(controller: _controller),
     );

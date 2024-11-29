@@ -36,3 +36,4 @@ State Management: Uses MobX for state management.
 WebView: Allows users to view articles within the app.
 URL Launcher: Provides the option to launch URLs in an external web browser.
 Asynchronous Network Requests: Fetches data from a news API.
+Theme Service: Icon added on the landing screen to toggle between dark and light theme
