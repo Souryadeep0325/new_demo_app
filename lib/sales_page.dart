@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:news_app/centred_view.dart';
+import 'package:news_app/custom_appbar.dart';
 
 class SalesPage extends StatefulWidget {
   const SalesPage({super.key});
@@ -30,47 +32,49 @@ class _SalesPageState extends State<SalesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Sales')),
-      body: Column(
-        children: [
-          // Top Section: Search Field
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              onChanged: (value) {
-                setState(() {
-                  searchQuery = value;
-                });
-              },
-              decoration: InputDecoration(
-                labelText: 'Search Order ID',
-                border: OutlineInputBorder(),
-                prefixIcon: const Icon(Icons.search),
+    return CentredView(
+      child: Scaffold(
+        appBar: const CustomAppBar(appBarTitle: 'Sales',),
+        body: Column(
+          children: [
+            // Top Section: Search Field
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: TextField(
+                onChanged: (value) {
+                  setState(() {
+                    searchQuery = value;
+                  });
+                },
+                decoration: InputDecoration(
+                  labelText: 'Search Order ID',
+                  border: OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.search),
+                ),
               ),
             ),
-          ),
-
-          // Bottom Section: List of Orders
-          Expanded(
-            child: ListView.builder(
-              itemCount: filteredOrders.length,
-              itemBuilder: (context, index) {
-                final order = filteredOrders[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                  child: ListTile(
-                    title: Text(order['name'] ?? 'No Name'),
-                    subtitle: Text(order['details'] ?? 'No Details'),
-                    leading: CircleAvatar(
-                      child: Text(order['orderId'] ?? 'N/A'),
+      
+            // Bottom Section: List of Orders
+            Expanded(
+              child: ListView.builder(
+                itemCount: filteredOrders.length,
+                itemBuilder: (context, index) {
+                  final order = filteredOrders[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                    child: ListTile(
+                      title: Text(order['name'] ?? 'No Name'),
+                      subtitle: Text(order['details'] ?? 'No Details'),
+                      leading: CircleAvatar(
+                        child: Text(order['orderId'] ?? 'N/A'),
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

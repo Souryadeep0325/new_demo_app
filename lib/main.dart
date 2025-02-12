@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:news_app/scrap.dart';
 import 'package:provider/provider.dart';
 import 'auth.dart';
 import 'login_page.dart';
@@ -44,6 +45,9 @@ class MyApp extends StatelessWidget {
           '/sales': (_) => const SalesPage(),
           '/purchases': (_) => const PurchasesPage(),
           '/listing': (_) => const ListingPage(),
+          '/qc1': (_) => const ListingPage(),
+          '/qc2': (_) => const ListingPage(),
+          '/scrap': (_) => const ScrapPage(),
         },
       ),
     );

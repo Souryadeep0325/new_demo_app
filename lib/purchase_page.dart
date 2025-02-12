@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:news_app/centred_view.dart';
+import 'package:news_app/custom_appbar.dart';
 
 class PurchasesPage extends StatefulWidget {
   const PurchasesPage({super.key});
@@ -65,76 +67,78 @@ class _PurchasesPageState extends State<PurchasesPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Purchases')),
-      body: Column(
-        children: [
-          // Top Section: Product Entry Form
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                // Product ID Field
-                TextField(
-                  controller: _productIdController,
-                  decoration: const InputDecoration(
-                    labelText: 'Product ID',
-                    border: OutlineInputBorder(),
+    return CentredView(
+      child: Scaffold(
+        appBar: const CustomAppBar(appBarTitle: 'Purchases',),
+        body: Column(
+          children: [
+            // Top Section: Product Entry Form
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  // Product ID Field
+                  TextField(
+                    controller: _productIdController,
+                    decoration: const InputDecoration(
+                      labelText: 'Product ID',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
                   ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 10),
-
-                // Product Name Field
-                TextField(
-                  controller: _productNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Product Name',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-
-                // Product Price Field
-                TextField(
-                  controller: _productPriceController,
-                  decoration: const InputDecoration(
-                    labelText: 'Product Price',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-                const SizedBox(height: 20),
-
-                // Add Product Button
-                ElevatedButton(
-                  onPressed: _addProduct,
-                  child: const Text('Add Product'),
-                ),
-              ],
-            ),
-          ),
-
-          // Bottom Section: List of Products
-          Expanded(
-            child: ListView.builder(
-              itemCount: products.length,
-              itemBuilder: (context, index) {
-                final product = products[index];
-                return Card(
-                  margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-                  child: ListTile(
-                    title: Text(product['name'] ?? 'No Name'),
-                    subtitle: Text('Price: \$${product['price']}'),
-                    leading: CircleAvatar(
-                      child: Text(product['id'] ?? 'N/A'),
+                  const SizedBox(height: 10),
+      
+                  // Product Name Field
+                  TextField(
+                    controller: _productNameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Product Name',
+                      border: OutlineInputBorder(),
                     ),
                   ),
-                );
-              },
+                  const SizedBox(height: 10),
+      
+                  // Product Price Field
+                  TextField(
+                    controller: _productPriceController,
+                    decoration: const InputDecoration(
+                      labelText: 'Product Price',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 20),
+      
+                  // Add Product Button
+                  ElevatedButton(
+                    onPressed: _addProduct,
+                    child: const Text('Add Product'),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+      
+            // Bottom Section: List of Products
+            Expanded(
+              child: ListView.builder(
+                itemCount: products.length,
+                itemBuilder: (context, index) {
+                  final product = products[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                    child: ListTile(
+                      title: Text(product['name'] ?? 'No Name'),
+                      subtitle: Text('Price: \$${product['price']}'),
+                      leading: CircleAvatar(
+                        child: Text(product['id'] ?? 'N/A'),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
