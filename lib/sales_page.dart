@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:news_app/centred_view.dart';
 import 'package:news_app/custom_appbar.dart';
 
@@ -10,50 +11,149 @@ class SalesPage extends StatefulWidget {
 }
 
 class _SalesPageState extends State<SalesPage> {
-  // List of orders (sample data)
-  final List<Map<String, String>> orders = [
-    {'orderId': '101', 'name': 'Order 101', 'details': 'Details of Order 101'},
-    {'orderId': '102', 'name': 'Order 102', 'details': 'Details of Order 102'},
-    {'orderId': '103', 'name': 'Order 103', 'details': 'Details of Order 103'},
-    {'orderId': '104', 'name': 'Order 104', 'details': 'Details of Order 104'},
+  // List of orders (sample data with extended fields for ticketId, status, etc.)
+  final List<Map<String, dynamic>> orders = [
+    {
+      'ticketId': 'TCKT0001',
+      'status': 'qc1',
+      'itemName': 'Smartphone XYZ',
+      'itemPrice': 19999.99,
+      'creationDate': DateTime(2025, 02, 01),
+    },
+    {
+      'ticketId': 'TCKT0002',
+      'status': 'qc2',
+      'itemName': 'Laptop ABC',
+      'itemPrice': 34999.99,
+      'creationDate': DateTime(2025, 02, 02),
+    },
+    {
+      'ticketId': 'TCKT0003',
+      'status': 'factory',
+      'itemName': 'Headphones ABC',
+      'itemPrice': 2999.99,
+      'creationDate': DateTime(2025, 02, 03),
+    },
+    {
+      'ticketId': 'TCKT0004',
+      'status': 'listing',
+      'itemName': 'Smartwatch DEF',
+      'itemPrice': 4999.99,
+      'creationDate': DateTime(2025, 02, 04),
+    },
+    {
+      'ticketId': 'TCKT0005',
+      'status': 'sold',
+      'itemName': 'Tablet XYZ',
+      'itemPrice': 15999.99,
+      'creationDate': DateTime(2025, 02, 05),
+    },
   ];
 
-  // Search query to filter the orders
+  // Variables for search query and date range filter
   String searchQuery = '';
+  DateTimeRange? selectedDateRange;
 
-  // Method to filter orders based on search query
-  List<Map<String, String>> get filteredOrders {
+  // Method to filter orders based on search query and date range
+  List<Map<String, dynamic>> get filteredOrders {
     return orders
-        .where((order) => order['orderId']!
-        .toLowerCase()
-        .contains(searchQuery.toLowerCase()))
+        .where((order) {
+      bool matchesSearchQuery = order['ticketId']!
+          .toLowerCase()
+          .contains(searchQuery.toLowerCase()) ||
+          order['itemName']!
+              .toLowerCase()
+              .contains(searchQuery.toLowerCase());
+      bool matchesDateRange = true;
+
+      if (selectedDateRange != null) {
+        DateTime orderDate = order['creationDate'];
+        matchesDateRange = orderDate.isAfter(selectedDateRange!.start) &&
+            orderDate.isBefore(selectedDateRange!.end);
+      }
+
+      return matchesSearchQuery && matchesDateRange;
+    })
         .toList();
+  }
+
+  // Function to pick date range
+  Future<void> _selectDateRange(BuildContext context) async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      initialDateRange: selectedDateRange,
+    );
+
+    if (picked != null && picked != selectedDateRange) {
+      setState(() {
+        selectedDateRange = picked;
+      });
+    }
+  }
+
+  // Clear all filters
+  void _clearFilters() {
+    setState(() {
+      searchQuery = '';
+      selectedDateRange = null;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return CentredView(
       child: Scaffold(
-        appBar: const CustomAppBar(appBarTitle: 'Sales',),
+        appBar: const CustomAppBar(appBarTitle: 'Sales'),
         body: Column(
           children: [
-            // Top Section: Search Field
+            // Top Section: Search Field and Date Range Picker
             Padding(
               padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                onChanged: (value) {
-                  setState(() {
-                    searchQuery = value;
-                  });
-                },
-                decoration: InputDecoration(
-                  labelText: 'Search Order ID',
-                  border: OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.search),
-                ),
+              child: Column(
+                children: [
+                  // Search Field
+                  TextField(
+                    onChanged: (value) {
+                      setState(() {
+                        searchQuery = value;
+                      });
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'Search Ticket ID or Item Name',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Date Range Selector
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        selectedDateRange == null
+                            ? 'Select Date Range'
+                            : 'From: ${DateFormat('MM/dd/yyyy').format(selectedDateRange!.start)} To: ${DateFormat('MM/dd/yyyy').format(selectedDateRange!.end)}',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.calendar_today),
+                        onPressed: () => _selectDateRange(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Clear Filters Button
+                  ElevatedButton(
+                    onPressed: _clearFilters,
+                    child: const Text('Clear Filters'),
+                  ),
+                ],
               ),
             ),
-      
+
             // Bottom Section: List of Orders
             Expanded(
               child: ListView.builder(
@@ -63,10 +163,18 @@ class _SalesPageState extends State<SalesPage> {
                   return Card(
                     margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
                     child: ListTile(
-                      title: Text(order['name'] ?? 'No Name'),
-                      subtitle: Text(order['details'] ?? 'No Details'),
+                      title: Text(order['ticketId'] ?? 'No Ticket ID'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(order['itemName'] ?? 'No Item Name'),
+                          Text('Status: ${order['status']}'),
+                          Text('Price: \$${order['itemPrice']}'),
+                          Text('Created on: ${DateFormat('MM/dd/yyyy').format(order['creationDate'])}'),
+                        ],
+                      ),
                       leading: CircleAvatar(
-                        child: Text(order['orderId'] ?? 'N/A'),
+                        child: Text(order['ticketId']?.substring(0, 4) ?? 'N/A'),
                       ),
                     ),
                   );

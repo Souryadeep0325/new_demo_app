@@ -7,6 +7,7 @@ import 'home_page.dart';
 import 'sales_page.dart';
 import 'purchase_page.dart';
 import 'listing_page.dart';
+import 'gst_calculation_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -48,6 +49,7 @@ class MyApp extends StatelessWidget {
           '/qc1': (_) => const ListingPage(),
           '/qc2': (_) => const ListingPage(),
           '/scrap': (_) => const ScrapPage(),
+          '/gst_calculation': (context) => const GSTCalculationPage(),
         },
       ),
     );

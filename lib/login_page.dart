@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:news_app/custom_appbar.dart';
-import 'auth.dart';
+import 'package:news_app/auth.dart';
+import 'package:news_app/centred_view.dart';
 import 'package:provider/provider.dart';
-import 'centred_view.dart';
+import 'custom_appbar.dart';
 
 class LoginPage extends StatelessWidget {
-  final TextEditingController _roleController = TextEditingController();
-  final TextEditingController _userIdController = TextEditingController();
-  final TextEditingController _organizationController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   LoginPage({super.key});
 
@@ -17,72 +16,53 @@ class LoginPage extends StatelessWidget {
 
     return CentredView(
       child: Scaffold(
-        appBar:const CustomAppBar(appBarTitle: 'Sign-In',),
+        appBar: const CustomAppBar(appBarTitle: 'Sign-In'),
         body: Center(
           child: Container(
             height: 400,
             width: 400,
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.blue, // Set the background color to blue
-              borderRadius: BorderRadius.circular(10), // Optional: add rounded corners
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Sign-in:', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-      
-                // User ID Field
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
-                  child: TextField(
-                    controller: _userIdController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Enter User ID'),
-                  ),
+                const Text('Login', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+
+                // Email
+                TextField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(labelText: 'Email'),
                 ),
-      
-                // Organization Name Field
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
-                  child: TextField(
-                    controller: _organizationController,
-                    decoration: const InputDecoration(labelText: 'Enter Organization Name'),
-                  ),
+
+                const SizedBox(height: 16),
+
+                // Password
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: 'Password'),
                 ),
-      
-                // Role Field
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
-                  child: TextField(
-                    controller: _roleController,
-                    decoration: const InputDecoration(labelText: 'Enter Role (admin/user)'),
-                  ),
-                ),
-      
-                const SizedBox(height: 16,),
-                // Login Button
+
+                const SizedBox(height: 24),
+
                 ElevatedButton(
-                  onPressed: () {
-                    final role = _roleController.text;
-                    final userId = int.tryParse(_userIdController.text); // Parsing user ID as integer
-                    final organization = _organizationController.text;
-      
-                    // Verifying if any field is empty or invalid
-                    if (_userIdController.text.isEmpty ||
-                        _organizationController.text.isEmpty ||
-                        _roleController.text.isEmpty) {
-                      // If any field is empty, show an alert dialog
-                      _showAlertDialog(context, 'All fields must be filled.');
-                    } else if (userId == null) {
-                      // If User ID is not a valid integer, show an error message
-                      _showAlertDialog(context, 'User ID must be a valid integer.');
-                    } else if (role != 'admin' && role != 'user') {
-                      // If the role is neither 'admin' nor 'user'
-                      _showAlertDialog(context, 'Role must be either "admin" or "user".');
+                  onPressed: () async {
+                    final email = _emailController.text.trim();
+                    final password = _passwordController.text;
+
+                    if (email.isEmpty || password.isEmpty) {
+                      _showAlertDialog(context, 'Email and password are required.');
+                      return;
+                    }
+
+                    final success = await authStore.login(email, password);
+                    if (success) {
+                      Navigator.pushReplacementNamed(context, '/home');
                     } else {
-                      // If all fields are valid, perform login
-                      authStore.login(role);  // Log the user in with the role
-                      Navigator.pushReplacementNamed(context, '/home'); // Navigate to HomePage
+                      _showAlertDialog(context, 'Invalid credentials or role not allowed.');
                     }
                   },
                   child: const Text('Login'),
@@ -95,27 +75,19 @@ class LoginPage extends StatelessWidget {
     );
   }
 
-  // Function to show an AlertDialog with the error message
   void _showAlertDialog(BuildContext context, String message) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Invalid Input'),
-          content: SizedBox(
-            width: 400, // Set the width of the dialog to 400
-            child: Text(message), // The message content
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);  // Close the dialog
-              },
-              child: const Text('OK'),
-            ),
-          ],
-        );
-      },
+      builder: (_) => AlertDialog(
+        title: const Text('Login Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          )
+        ],
+      ),
     );
   }
 }

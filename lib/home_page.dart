@@ -3,20 +3,19 @@ import 'package:news_app/centred_view.dart';
 import 'auth.dart';
 import 'package:provider/provider.dart';
 import 'custom_appbar.dart';
+import 'gst_calculation_page.dart';
+import 'package:http/http.dart' as http;
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // Listen for changes in AuthStore using Provider
     final authStore = Provider.of<AuthStore>(context);
 
-    // List of tiles for admin and user roles
     List<Map<String, String>> tileList = [];
 
-    // If the role is admin, show all tiles, otherwise, only show the ones relevant for user
-    if (authStore.role == 'admin') {
+    if (authStore.role == 'ROLE_MANAGER') {
       tileList = [
         {'title': 'Purchases', 'route': '/purchases'},
         {'title': 'QC1', 'route': '/qc1'},
@@ -25,6 +24,7 @@ class HomePage extends StatelessWidget {
         {'title': 'Listing', 'route': '/listing'},
         {'title': 'Sales', 'route': '/sales'},
         {'title': 'Scrap', 'route': '/scrap'},
+        {'title': 'GST Calculation', 'route': '/gst_calculation'},
       ];
     } else if (authStore.role == 'user') {
       tileList = [
@@ -35,15 +35,26 @@ class HomePage extends StatelessWidget {
 
     return CentredView(
       child: Scaffold(
-        appBar: const CustomAppBar(appBarTitle: 'My Home',),
+        appBar: AppBar(
+          title: const Text('My Home'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout),
+              onPressed: () async {
+                await _logout(context, authStore);
+              },
+              tooltip: 'Logout',
+            ),
+          ],
+        ),
         body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 100,vertical: 50), // Apply 100px padding left and right
+          padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 50),
           child: GridView.builder(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2, // Two columns
-              crossAxisSpacing: 16.0, // Space between columns
-              mainAxisSpacing: 16.0, // Space between rows
-              childAspectRatio: 4.0, // Aspect ratio of each tile
+              crossAxisCount: 2,
+              crossAxisSpacing: 16.0,
+              mainAxisSpacing: 16.0,
+              childAspectRatio: 4.0,
             ),
             itemCount: tileList.length,
             itemBuilder: (context, index) {
@@ -62,13 +73,13 @@ class HomePage extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.grey[200], // Grey background color
-          borderRadius: BorderRadius.circular(12), // Rounded corners
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1), // Shadow color
-              blurRadius: 8, // Spread of the shadow
-              offset: const Offset(0, 4), // Shadow position
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -86,6 +97,35 @@ class HomePage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _logout(BuildContext context, AuthStore authStore) async {
+    const logoutUrl = 'http://35.154.252.161:8080/api/auth/logout';
+
+    try {
+      final response = await http.post(
+        Uri.parse(logoutUrl),
+        headers: {
+          'Authorization': 'Bearer ${authStore.token}',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        authStore.logout(); // Clear user state
+        Navigator.pushReplacementNamed(context, '/login');
+      } else {
+        _showError(context, 'Logout failed with status ${response.statusCode}');
+      }
+    } catch (e) {
+      _showError(context, 'Logout error: $e');
+    }
+  }
+
+  void _showError(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 }

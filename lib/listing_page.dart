@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+
+import 'centred_view.dart';
+import 'custom_appbar.dart';
 
 class ListingPage extends StatefulWidget {
   const ListingPage({super.key});
@@ -8,67 +12,286 @@ class ListingPage extends StatefulWidget {
 }
 
 class _ListingPageState extends State<ListingPage> {
-  // List of products with status
-  final List<Map<String, dynamic>> products = [
-    {'id': '001', 'name': 'Product A', 'price': 100, 'status': 'available'},
-    {'id': '002', 'name': 'Product B', 'price': 150, 'status': 'available'},
-    {'id': '003', 'name': 'Product C', 'price': 200, 'status': 'available'},
+  final List<Map<String, dynamic>> orders = [
+    {
+      'ticketId': 'TCKT0001',
+      'status': 'qc1',
+      'itemName': 'Smartphone XYZ',
+      'itemPrice': 19999.99,
+      'brand': 'Brand A',
+      'batteryPercentage': 80,
+      'warranty': '2 Years',
+      'costPrice': 15000.00,
+      'creationDate': DateTime(2025, 02, 01),
+    },
+    {
+      'ticketId': 'TCKT0002',
+      'status': 'qc2',
+      'itemName': 'Laptop ABC',
+      'itemPrice': 34999.99,
+      'brand': 'Brand B',
+      'batteryPercentage': 75,
+      'warranty': '1 Year',
+      'costPrice': 25000.00,
+      'creationDate': DateTime(2025, 02, 02),
+    },
+    {
+      'ticketId': 'TCKT0003',
+      'status': 'factory',
+      'itemName': 'Headphones ABC',
+      'itemPrice': 2999.99,
+      'brand': 'Brand C',
+      'batteryPercentage': 90,
+      'warranty': '6 Months',
+      'costPrice': 2000.00,
+      'creationDate': DateTime(2025, 02, 03),
+    },
+    {
+      'ticketId': 'TCKT0004',
+      'status': 'listing',
+      'itemName': 'Smartwatch DEF',
+      'itemPrice': 4999.99,
+      'brand': 'Brand D',
+      'batteryPercentage': 85,
+      'warranty': '1 Year',
+      'costPrice': 3500.00,
+      'creationDate': DateTime(2025, 02, 04),
+    },
+    {
+      'ticketId': 'TCKT0005',
+      'status': 'sold',
+      'itemName': 'Tablet XYZ',
+      'itemPrice': 15999.99,
+      'brand': 'Brand E',
+      'batteryPercentage': 95,
+      'warranty': '2 Years',
+      'costPrice': 12000.00,
+      'creationDate': DateTime(2025, 02, 05),
+    },
   ];
 
-  // Controllers for bill creation
-  final TextEditingController _customerNameController = TextEditingController();
-  final TextEditingController _customerAddressController = TextEditingController();
-  final TextEditingController _customerPhoneController = TextEditingController();
+  String searchQuery = '';
+  DateTimeRange? selectedDateRange;
 
-  // Method to create a bill for a product
-  void _createBill(Map<String, dynamic> product) {
-    final customerName = _customerNameController.text;
-    final customerAddress = _customerAddressController.text;
-    final customerPhone = _customerPhoneController.text;
+  List<Map<String, dynamic>> get filteredOrders {
+    return orders
+        .where((order) {
+      bool matchesSearchQuery = order['ticketId']!
+          .toLowerCase()
+          .contains(searchQuery.toLowerCase()) ||
+          order['itemName']!
+              .toLowerCase()
+              .contains(searchQuery.toLowerCase());
+      bool matchesDateRange = true;
 
-    // Validate customer details
-    if (customerName.isEmpty || customerAddress.isEmpty || customerPhone.isEmpty) {
-      _showAlertDialog('Please fill in all customer details.');
-    } else {
-      // Mark product as sold
+      if (selectedDateRange != null) {
+        DateTime orderDate = order['creationDate'];
+        matchesDateRange = orderDate.isAfter(selectedDateRange!.start) &&
+            orderDate.isBefore(selectedDateRange!.end);
+      }
+
+      return matchesSearchQuery && matchesDateRange;
+    })
+        .toList();
+  }
+
+  Future<void> _selectDateRange(BuildContext context) async {
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      initialDateRange: selectedDateRange,
+    );
+
+    if (picked != null && picked != selectedDateRange) {
       setState(() {
-        product['status'] = 'sold';
+        selectedDateRange = picked;
       });
-
-      // Clear the form fields
-      _customerNameController.clear();
-      _customerAddressController.clear();
-      _customerPhoneController.clear();
-
-      // Navigate to the bill page to view the bill
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => BillPage(
-            product: product,
-            customerName: customerName,
-            customerAddress: customerAddress,
-            customerPhone: customerPhone,
-          ),
-        ),
-      );
     }
   }
 
-  // Method to show an alert dialog
-  void _showAlertDialog(String message) {
+  void _clearFilters() {
+    setState(() {
+      searchQuery = '';
+      selectedDateRange = null;
+    });
+  }
+
+  // Function to change the status of an order
+  void _changeStatus(String ticketId, String newStatus) {
+    setState(() {
+      final order = orders.firstWhere((order) => order['ticketId'] == ticketId);
+      order['status'] = newStatus;
+    });
+  }
+
+  // Function to show the dialog for changing the status
+  Future<void> _showChangeStatusDialog(String ticketId) async {
+    String selectedStatus = orders
+        .firstWhere((order) => order['ticketId'] == ticketId)['status'];
+
+    // The dropdown selection is updated by an onChanged callback
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Invalid Input'),
-          content: Text(message),
+          title: Text('Change Status for $ticketId'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButton<String>(
+                value: selectedStatus,
+                onChanged: (String? newStatus) {
+                  if (newStatus != null) {
+                    setState(() {
+                      // Update selectedStatus immediately in the state
+                      selectedStatus = newStatus;
+                    });
+                  }
+                },
+                items: ['qc1', 'qc2', 'factory', 'listing', 'sold']
+                    .map((status) => DropdownMenuItem<String>(
+                  value: status,
+                  child: Text(status),
+                ))
+                    .toList(),
+              ),
+            ],
+          ),
           actions: [
-            TextButton(
+            ElevatedButton(
               onPressed: () {
-                Navigator.pop(context); // Close the dialog
+                setState(() {
+                  // Update the order's status in the list based on the selected status
+                  final order = orders.firstWhere(
+                          (order) => order['ticketId'] == ticketId);
+                  order['status'] = selectedStatus; // Update status here
+                });
+                Navigator.of(context).pop(); // Close the dialog
               },
-              child: const Text('OK'),
+              child: Text('Update Status'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+  // Function to show the Create Bill dialog and change status to sold
+  Future<void> _createBillDialog(String ticketId) async {
+    TextEditingController customerNameController = TextEditingController();
+    TextEditingController customerAddressController = TextEditingController();
+    TextEditingController customerContactController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Create Bill for $ticketId'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: customerNameController,
+                decoration: InputDecoration(labelText: 'Customer Name'),
+              ),
+              TextField(
+                controller: customerAddressController,
+                decoration: InputDecoration(labelText: 'Customer Address'),
+              ),
+              TextField(
+                controller: customerContactController,
+                decoration: InputDecoration(labelText: 'Customer Contact'),
+              ),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                final customerName = customerNameController.text;
+                final customerAddress = customerAddressController.text;
+                final customerContact = customerContactController.text;
+
+                if (customerName.isNotEmpty && customerAddress.isNotEmpty && customerContact.isNotEmpty) {
+                  final order = orders.firstWhere((order) => order['ticketId'] == ticketId);
+                  final billDetails = '''
+                    Bill for ${order['itemName']} (Ticket ID: $ticketId)
+                    Customer: $customerName
+                    Address: $customerAddress
+                    Contact: $customerContact
+                    Price: \$${order['itemPrice']}
+                    Date: ${DateFormat('MM/dd/yyyy').format(order['creationDate'])}
+                    Status: Sold
+                  ''';
+
+                  // Show bill and change status
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: Text('Sample Bill'),
+                        content: SingleChildScrollView(child: Text(billDetails)),
+                        actions: [
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _changeStatus(ticketId, 'sold');
+                              });
+                              Navigator.of(context).pop(); // Close bill dialog
+                              Navigator.of(context).pop(); // Close create bill dialog
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Bill created for $ticketId')),
+                              );
+                            },
+                            child: Text('Proceed'),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Please fill all the details')),
+                  );
+                }
+              },
+              child: Text('Create Bill'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Function to show product details
+  Future<void> _showProductDetailsDialog(Map<String, dynamic> order) async {
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Product Details for ${order['ticketId']}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Item Name: ${order['itemName']}'),
+              Text('Brand: ${order['brand'] ?? 'N/A'}'),
+              Text('Battery: ${order['batteryPercentage'] ?? 'N/A'}%'),
+              Text('Warranty: ${order['warranty'] ?? 'N/A'}'),
+              Text('Cost Price: \$${order['costPrice'] ?? 'N/A'}'),
+              Text('Price: \$${order['itemPrice']}'),
+              Text('Created on: ${DateFormat('MM/dd/yyyy').format(order['creationDate'])}'),
+              Text('Status: ${order['status']}'),
+            ],
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();  // Close the product details dialog
+              },
+              child: Text('Close'),
             ),
           ],
         );
@@ -78,113 +301,116 @@ class _ListingPageState extends State<ListingPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Listing')),
-      body: ListView.builder(
-        itemCount: products.length,
-        itemBuilder: (context, index) {
-          final product = products[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-            child: ListTile(
-              title: Text(product['name']),
-              subtitle: Text('Price: \$${product['price']}'),
-              leading: CircleAvatar(
-                child: Text(product['id']),
-              ),
-              trailing: product['status'] == 'available'
-                  ? ElevatedButton(
-                onPressed: () {
-                  _showBillForm(context, product);
-                },
-                child: const Text('Create Bill'),
-              )
-                  : const Text('Sold', style: TextStyle(color: Colors.green)),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  // Show Bill Creation Form when 'Create Bill' is pressed
-  void _showBillForm(BuildContext context, Map<String, dynamic> product) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              // Customer Name
-              TextField(
-                controller: _customerNameController,
-                decoration: const InputDecoration(labelText: 'Customer Name'),
-              ),
-              const SizedBox(height: 10),
-
-              // Customer Address
-              TextField(
-                controller: _customerAddressController,
-                decoration: const InputDecoration(labelText: 'Customer Address'),
-              ),
-              const SizedBox(height: 10),
-
-              // Customer Phone
-              TextField(
-                controller: _customerPhoneController,
-                decoration: const InputDecoration(labelText: 'Customer Phone'),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 20),
-
-              ElevatedButton(
-                onPressed: () {
-                  _createBill(product);
-                },
-                child: const Text('Create Bill'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class BillPage extends StatelessWidget {
-  final Map<String, dynamic> product;
-  final String customerName;
-  final String customerAddress;
-  final String customerPhone;
-
-  const BillPage({
-    super.key,
-    required this.product,
-    required this.customerName,
-    required this.customerAddress,
-    required this.customerPhone,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Bill Details')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
+    return CentredView(
+      child: Scaffold(
+        appBar: const CustomAppBar(appBarTitle: 'Sales'),
+        backgroundColor: Colors.blue[50],
+        body: Column(
           children: [
-            Text('Product: ${product['name']}'),
-            Text('Price: \$${product['price']}'),
-            Text('Customer Name: $customerName'),
-            Text('Customer Address: $customerAddress'),
-            Text('Customer Phone: $customerPhone'),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context); // Go back to the listing page
-              },
-              child: const Text('Back to Listings'),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  TextField(
+                    onChanged: (value) {
+                      setState(() {
+                        searchQuery = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Search Ticket ID or Item Name',
+                      labelStyle: TextStyle(color: Colors.blue),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25.0),
+                        borderSide: BorderSide(color: Colors.blue),
+                      ),
+                      prefixIcon: Icon(Icons.search, color: Colors.blue),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        selectedDateRange == null
+                            ? 'Select Date Range'
+                            : 'From: ${DateFormat('MM/dd/yyyy').format(selectedDateRange!.start)} To: ${DateFormat('MM/dd/yyyy').format(selectedDateRange!.end)}',
+                        style: TextStyle(color: Colors.blue),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.calendar_today, color: Colors.blue),
+                        onPressed: () => _selectDateRange(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _clearFilters,
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                    child: const Text('Clear Filters'),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: filteredOrders.length,
+                itemBuilder: (context, index) {
+                  final order = filteredOrders[index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15.0),
+                    ),
+                    elevation: 4,
+                    child: ListTile(
+                      title: Text(order['ticketId'] ?? 'No Ticket ID'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(order['itemName'] ?? 'No Item Name'),
+                          Row(
+                            children: [
+                              Text('Status: ${order['status']}'),
+                              const Spacer(),  // Ensures everything stays to the left
+                              ElevatedButton(
+                                onPressed: () {
+                                  _showChangeStatusDialog(order['ticketId']);
+                                },
+                                child: Text('Edit Status'),
+                              ),
+                              SizedBox(width: 8),  // Optional: Adds space between the buttons
+                              IconButton(
+                                icon: Icon(Icons.info, color: Colors.blue),
+                                onPressed: () {
+                                  _showProductDetailsDialog(order); // Show product details dialog
+                                },
+                              ),
+
+                                // This will remain towards the right if you use Spacer()
+                            ],
+                          ),
+                          Text('Price: \$${order['itemPrice']}'),
+                          Text('Created on: ${DateFormat('MM/dd/yyyy').format(order['creationDate'])}'),
+                        ],
+                      ),
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.blue,
+                        child: Text(order['ticketId']?.substring(0, 4) ?? 'N/A', style: TextStyle(color: Colors.white)),
+                      ),
+                      trailing: order['status'] == 'listing'
+                          ? ElevatedButton(
+                        onPressed: () {
+                          _createBillDialog(order['ticketId']);
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                        child: const Text('Create Bill'),
+                      )
+                          : null,
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),

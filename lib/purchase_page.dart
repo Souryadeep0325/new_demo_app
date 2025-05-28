@@ -1,6 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:news_app/centred_view.dart';
 import 'package:news_app/custom_appbar.dart';
+import 'package:provider/provider.dart';
+import 'auth.dart';
+import 'package:news_app/product_form_dialog.dart';
+
 
 class PurchasesPage extends StatefulWidget {
   const PurchasesPage({super.key});
@@ -10,58 +16,103 @@ class PurchasesPage extends StatefulWidget {
 }
 
 class _PurchasesPageState extends State<PurchasesPage> {
-  // List of products (sample data)
-  final List<Map<String, String>> products = [];
+  final TextEditingController _brandController = TextEditingController(text: 'lg');
+  List<String> productNames = [];
+  List<int>  productMasterId = [];
+  int currentPage = 0;
+  int totalPages = 1;
+  bool isLoading = false;
+  String currentBrand = 'lg';
+  late AuthStore authStore; // Declare authStore
 
-  // Controllers for product fields
-  final TextEditingController _productIdController = TextEditingController();
-  final TextEditingController _productNameController = TextEditingController();
-  final TextEditingController _productPriceController = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
 
-  // Method to add product to the list
-  void _addProduct() {
-    final productId = _productIdController.text;
-    final productName = _productNameController.text;
-    final productPrice = _productPriceController.text;
+    // Access Provider safely after widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      authStore = Provider.of<AuthStore>(context, listen: false);
+      fetchProducts(brand: currentBrand, page: 0);
+    });
+  }
 
-    // Check if any field is empty
-    if (productId.isEmpty || productName.isEmpty || productPrice.isEmpty) {
-      _showAlertDialog('Please fill in all fields.');
-    } else {
-      // Add the new product to the list
+  Future<void> fetchProducts({required String brand, int page = 0}) async {
+    if (isLoading) return;
+
+    setState(() {
+      isLoading = true;
+      if (page == 0) productNames.clear(); // Clear on new brand search
+    });
+
+    final uri = Uri.parse(
+        'http://35.154.252.161:8080/api/product/brand/names?brand=$brand&page=$page');
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer ${authStore.token}',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      final List products = data['content'];
+      final int pages = data['totalPages'];
+
       setState(() {
-        products.add({
-          'id': productId,
-          'name': productName,
-          'price': productPrice,
-        });
+        currentBrand = brand;
+        currentPage = page;
+        totalPages = pages;
+        productNames = products.map<String>((e) => e['productName'] as String).toList();
+        productMasterId = products.map<int>((e) => int.parse(e['productMasterId'].toString())).toList();
+        isLoading = false;
       });
-
-      // Clear the text fields
-      _productIdController.clear();
-      _productNameController.clear();
-      _productPriceController.clear();
+    } else {
+      setState(() => isLoading = false);
+      _showAlertDialog('Failed to load products. Status: ${response.statusCode}');
     }
   }
 
-  // Method to show an alert dialog
   void _showAlertDialog(String message) {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Invalid Input'),
-          content: Text(message),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);  // Close the dialog
-              },
-              child: const Text('OK'),
+      builder: (_) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPagination() {
+    List<Widget> pageButtons = [];
+
+    for (int i = 0; i < totalPages; i++) {
+      pageButtons.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: i == currentPage ? Colors.blue : Colors.grey,
+              minimumSize: const Size(40, 36),
             ),
-          ],
-        );
-      },
+            onPressed: () {
+              if (i != currentPage) {
+                fetchProducts(brand: currentBrand, page: i);
+              }
+            },
+            child: Text('${i + 1}'),
+          ),
+        ),
+      );
+    }
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      children: pageButtons,
     );
   }
 
@@ -69,77 +120,71 @@ class _PurchasesPageState extends State<PurchasesPage> {
   Widget build(BuildContext context) {
     return CentredView(
       child: Scaffold(
-        appBar: const CustomAppBar(appBarTitle: 'Purchases',),
+        appBar: const CustomAppBar(appBarTitle: 'Purchases'),
         body: Column(
           children: [
-            // Top Section: Product Entry Form
             Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
+              padding: const EdgeInsets.all(16),
+              child: Row(
                 children: [
-                  // Product ID Field
-                  TextField(
-                    controller: _productIdController,
-                    decoration: const InputDecoration(
-                      labelText: 'Product ID',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 10),
-      
-                  // Product Name Field
-                  TextField(
-                    controller: _productNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Product Name',
-                      border: OutlineInputBorder(),
+                  Expanded(
+                    child: TextField(
+                      controller: _brandController,
+                      decoration: const InputDecoration(
+                        labelText: 'Enter brand name',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 10),
-      
-                  // Product Price Field
-                  TextField(
-                    controller: _productPriceController,
-                    decoration: const InputDecoration(
-                      labelText: 'Product Price',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 20),
-      
-                  // Add Product Button
+                  const SizedBox(width: 10),
                   ElevatedButton(
-                    onPressed: _addProduct,
-                    child: const Text('Add Product'),
+                    onPressed: () {
+                      final brand = _brandController.text.trim();
+                      if (brand.isNotEmpty) {
+                        fetchProducts(brand: brand, page: 0);
+                      }
+                    },
+                    child: const Text('Search'),
                   ),
                 ],
               ),
             ),
-      
-            // Bottom Section: List of Products
+
             Expanded(
-              child: ListView.builder(
-                itemCount: products.length,
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                itemCount: productNames.length,
                 itemBuilder: (context, index) {
-                  final product = products[index];
                   return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     child: ListTile(
-                      title: Text(product['name'] ?? 'No Name'),
-                      subtitle: Text('Price: \$${product['price']}'),
-                      leading: CircleAvatar(
-                        child: Text(product['id'] ?? 'N/A'),
+                      title: Text(productNames[index]),
+                      trailing: ElevatedButton(
+                        onPressed: () {
+                          _showFormDialog(  productMasterId[index]);
+                        },
+                        child: const Text('Open Form'),
                       ),
                     ),
                   );
                 },
               ),
             ),
+
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: _buildPagination(),
+            ),
           ],
         ),
       ),
+    );
+  }
+  void _showFormDialog(int itemId) {
+    showDialog(
+      context: context,
+      builder: (_) => ProductFormDialog(itemId: itemId),
     );
   }
 }
