@@ -4,14 +4,14 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'auth.dart';
 
-class TicketListPageListingPage extends StatefulWidget {
-  const TicketListPageListingPage({super.key});
+class TicketListPageQC2 extends StatefulWidget {
+  const TicketListPageQC2({super.key});
 
   @override
-  State<TicketListPageListingPage> createState() => _TicketListPageListingPageState();
+  State<TicketListPageQC2> createState() => _TicketListPageQC2State();
 }
 
-class _TicketListPageListingPageState extends State<TicketListPageListingPage> {
+class _TicketListPageQC2State extends State<TicketListPageQC2> {
   List<dynamic> tickets = [];
   bool isLoading = true;
 
@@ -23,7 +23,7 @@ class _TicketListPageListingPageState extends State<TicketListPageListingPage> {
 
   Future<void> fetchTickets() async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
-    final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/search-ticket/LISTED');
+    final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/search-ticket/QC2');
 
     try {
       final response = await http.get(
@@ -47,9 +47,9 @@ class _TicketListPageListingPageState extends State<TicketListPageListingPage> {
     }
   }
 
-  Future<void> createBill(int ticketId, String customerName, String phoneNumber) async {
+  Future<void> changeStatus(int ticketId) async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
-    final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/$ticketId/create-bill');
+    final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/$ticketId/status');
 
     try {
       final response = await http.post(
@@ -59,65 +59,37 @@ class _TicketListPageListingPageState extends State<TicketListPageListingPage> {
           'Content-Type': 'application/json',
         },
         body: json.encode({
-          "customerName": customerName,
-          "phoneNumber": phoneNumber,
+          "newStatus":"LISTED",
         }),
       );
 
       if (response.statusCode == 200) {
-        Navigator.of(context).pop(); // Close the form dialog
+        Navigator.of(context).pop(); // Close the dialog
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Bill created for ticket $ticketId')),
+          SnackBar(content: Text('Status updated for ticket $ticketId')),
         );
-        fetchTickets(); // Refresh the list if needed
+        fetchTickets(); // Refresh the list
       } else {
-        showError('Failed to create bill. Status: ${response.statusCode}');
+        showError('Failed to update status. Status: ${response.statusCode}');
       }
     } catch (e) {
-      showError('An error occurred while creating bill: $e');
+      showError('An error occurred while updating status: $e');
     }
   }
 
-  void showCreateBillForm(int ticketId) {
-    final nameController = TextEditingController();
-    final phoneController = TextEditingController();
-
+  void confirmStatusChange(int ticketId) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Create Bill'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Customer Name'),
-            ),
-            TextField(
-              controller: phoneController,
-              decoration: const InputDecoration(labelText: 'Phone Number'),
-              keyboardType: TextInputType.phone,
-            ),
-          ],
-        ),
+        title: const Text('Confirm Status Change'),
+        content: const Text('Do you want to change the status to Listed?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              final name = nameController.text.trim();
-              final phone = phoneController.text.trim();
-
-              if (name.isEmpty || phone.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Both fields are required')),
-                );
-              } else {
-                createBill(ticketId, name, phone);
-              }
-            },
+            onPressed: () => changeStatus(ticketId),
             child: const Text('Submit'),
           ),
         ],
@@ -142,7 +114,7 @@ class _TicketListPageListingPageState extends State<TicketListPageListingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Listed Devices")),
+      appBar: AppBar(title: const Text("QC2 List")),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView.builder(
@@ -164,8 +136,8 @@ class _TicketListPageListingPageState extends State<TicketListPageListingPage> {
                 ],
               ),
               trailing: ElevatedButton(
-                onPressed: () => showCreateBillForm(ticketId),
-                child: const Text("Create Bill"),
+                onPressed: () => confirmStatusChange(ticketId),
+                child: const Text("Change Status"),
               ),
             ),
           );

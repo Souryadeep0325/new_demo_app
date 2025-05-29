@@ -8,7 +8,9 @@ import 'sales_page.dart';
 import 'purchase_page.dart';
 import 'listing_page.dart';
 import 'gst_calculation_page.dart';
-
+import 'ticket_list_page.dart';
+import 'qc2.dart';
+import 'qc1.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -43,12 +45,13 @@ class MyApp extends StatelessWidget {
         routes: {
           '/login': (_) => LoginPage(),
           '/home': (_) => const HomePage(),
-          '/sales': (_) => const SalesPage(),
+          '/sales': (_) =>  const TicketListPageSold(),
           '/purchases': (_) => const PurchasesPage(),
-          '/listing': (_) => const ListingPage(),
-          '/qc1': (_) => const ListingPage(),
-          '/qc2': (_) => const ListingPage(),
+          '/listing': (_) => const TicketListPageListingPage(),
+          '/qc1': (_) => const TicketListPageQC1(),
+          '/qc2': (_) => const TicketListPageQC2(),
           '/scrap': (_) => const ScrapPage(),
+          '/all_products': (_) => const TicketListPage(),
           '/gst_calculation': (context) => const GSTCalculationPage(),
         },
       ),

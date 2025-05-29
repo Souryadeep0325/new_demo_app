@@ -25,6 +25,7 @@ class HomePage extends StatelessWidget {
         {'title': 'Sales', 'route': '/sales'},
         {'title': 'Scrap', 'route': '/scrap'},
         {'title': 'GST Calculation', 'route': '/gst_calculation'},
+        {'title': 'All Products', 'route': '/all_products'},
       ];
     } else if (authStore.role == 'user') {
       tileList = [
