@@ -14,6 +14,14 @@ class TicketListPageQC1 extends StatefulWidget {
 class _TicketListPageQC1State extends State<TicketListPageQC1> {
   List<dynamic> tickets = [];
   bool isLoading = true;
+  int currentPage = 0;
+  int pageSize = 10;
+
+  final itemIdController = TextEditingController();
+  final productNameController = TextEditingController();
+
+  String? currentItemId;
+  String? currentProductName;
 
   @override
   void initState() {
@@ -22,8 +30,20 @@ class _TicketListPageQC1State extends State<TicketListPageQC1> {
   }
 
   Future<void> fetchTickets() async {
+    setState(() => isLoading = true);
     final authStore = Provider.of<AuthStore>(context, listen: false);
-    final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/search-ticket/QC1');
+
+    final queryParameters = {
+      'ticketStatus': 'QC1',
+    };
+    if (currentItemId != null && currentItemId!.isNotEmpty) {
+      queryParameters['itemId'] = currentItemId!;
+    }
+    if (currentProductName != null && currentProductName!.isNotEmpty) {
+      queryParameters['productName'] = currentProductName!;
+    }
+
+    final uri = Uri.http('35.154.252.161:8080', '/api/ticket/search-ticket', queryParameters);
 
     try {
       final response = await http.get(
@@ -47,6 +67,22 @@ class _TicketListPageQC1State extends State<TicketListPageQC1> {
     }
   }
 
+  void applyFilters() {
+    currentItemId = itemIdController.text;
+    currentProductName = productNameController.text;
+    currentPage = 0;
+    fetchTickets();
+  }
+
+  void clearFilters() {
+    itemIdController.clear();
+    productNameController.clear();
+    currentItemId = null;
+    currentProductName = null;
+    currentPage = 0;
+    fetchTickets();
+  }
+
   Future<void> changeStatus(int ticketId) async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
     final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/$ticketId/status');
@@ -59,16 +95,16 @@ class _TicketListPageQC1State extends State<TicketListPageQC1> {
           'Content-Type': 'application/json',
         },
         body: json.encode({
-          "newStatus":"QC2",
+          "newStatus": "QC2",
         }),
       );
 
       if (response.statusCode == 200) {
-        Navigator.of(context).pop(); // Close the dialog
+        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Status updated for ticket $ticketId')),
         );
-        fetchTickets(); // Refresh the list
+        fetchTickets();
       } else {
         showError('Failed to update status. Status: ${response.statusCode}');
       }
@@ -113,35 +149,92 @@ class _TicketListPageQC1State extends State<TicketListPageQC1> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("QC1 List")),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-        itemCount: tickets.length,
-        itemBuilder: (context, index) {
-          final ticket = tickets[index];
-          final ticketId = ticket['ticketId'];
+    final paginatedTickets = tickets.skip(currentPage * pageSize).take(pageSize).toList();
+    final totalPages = (tickets.length / pageSize).ceil();
 
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ListTile(
-              title: Text("Item ID: ${ticket['itemId']}"),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Ticket ID: $ticketId"),
-                  Text("Purchase Type: ${ticket['productPurchaseType']}"),
-                  Text("Invoice Date: ${ticket['invoiceDate']}"),
-                ],
+    return Scaffold(
+      appBar: AppBar(title: const Text("QC1 Ticket List")),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: itemIdController,
+                    decoration: const InputDecoration(labelText: 'Item ID'),
+                    keyboardType: TextInputType.number,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextField(
+                    controller: productNameController,
+                    decoration: const InputDecoration(labelText: 'Product Name'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton(onPressed: applyFilters, child: const Text("Search")),
+                const SizedBox(width: 8),
+                TextButton(onPressed: clearFilters, child: const Text("Clear")),
+              ],
+            ),
+            if (currentItemId != null || currentProductName != null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text("Showing results for: "
+                    "${currentItemId != null ? "Item ID = $currentItemId " : ""}" +
+                    "${currentProductName != null ? "Product Name = $currentProductName" : ""}"),
               ),
-              trailing: ElevatedButton(
-                onPressed: () => confirmStatusChange(ticketId),
-                child: const Text("Change Status"),
+            const SizedBox(height: 16),
+            Expanded(
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                itemCount: paginatedTickets.length,
+                itemBuilder: (context, index) {
+                  final ticket = paginatedTickets[index];
+                  final ticketId = ticket['ticketId'];
+
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    child: ListTile(
+                      title: Text("Item ID: ${ticket['itemId']}"),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Ticket ID: $ticketId"),
+                          Text("Purchase Type: ${ticket['productPurchaseType']}"),
+                          Text("Invoice Date: ${ticket['invoiceDate']}"),
+                        ],
+                      ),
+                      trailing: ElevatedButton(
+                        onPressed: () => confirmStatusChange(ticketId),
+                        child: const Text("Change Status"),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
-          );
-        },
+            if (tickets.length > pageSize)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    onPressed: currentPage > 0 ? () => setState(() => currentPage--) : null,
+                    icon: const Icon(Icons.arrow_back),
+                  ),
+                  Text('Page ${currentPage + 1} of $totalPages'),
+                  IconButton(
+                    onPressed: currentPage < totalPages - 1 ? () => setState(() => currentPage++) : null,
+                    icon: const Icon(Icons.arrow_forward),
+                  ),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -4,21 +4,21 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'auth.dart';
 
-class ProductListing extends StatefulWidget {
+class TicketListingPage extends StatefulWidget {
   final String status;
   final String? title;
 
-  const ProductListing({
+  const TicketListingPage({
     super.key,
     required this.status,
     this.title,
   });
 
   @override
-  State<ProductListing> createState() => _ProductListingState();
+  State<TicketListingPage> createState() => _TicketListingPageState();
 }
 
-class _ProductListingState extends State<ProductListing> {
+class _TicketListingPageState extends State<TicketListingPage> {
   List<dynamic> allTickets = [];
   List<dynamic> displayedTickets = [];
   bool isLoading = true;
@@ -205,83 +205,6 @@ class _ProductListingState extends State<ProductListing> {
     }
   }
 
-  Future<void> createBill(int ticketId) async {
-    final authStore = Provider.of<AuthStore>(context, listen: false);
-    final TextEditingController customerNameController = TextEditingController();
-    final TextEditingController phoneNumberController = TextEditingController();
-    final TextEditingController gstIdController = TextEditingController();
-    final TextEditingController modeOfPaymentController = TextEditingController();
-    final TextEditingController onlineTrxIdController = TextEditingController();
-    final TextEditingController placeOfSaleController = TextEditingController();
-    final TextEditingController profitController = TextEditingController();
-    final TextEditingController billNumberController = TextEditingController();
-    final TextEditingController billDateController = TextEditingController();
-
-    await showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Create Bill'),
-        content: SingleChildScrollView(
-          child: Column(
-            children: [
-              TextField(controller: customerNameController, decoration: const InputDecoration(labelText: 'Customer Name')),
-              TextField(controller: phoneNumberController, decoration: const InputDecoration(labelText: 'Phone Number'), keyboardType: TextInputType.phone),
-              TextField(controller: gstIdController, decoration: const InputDecoration(labelText: 'GST ID (optional)')),
-              TextField(controller: modeOfPaymentController, decoration: const InputDecoration(labelText: 'Mode of Payment')),
-              TextField(controller: onlineTrxIdController, decoration: const InputDecoration(labelText: 'Online Transaction ID')),
-              TextField(controller: placeOfSaleController, decoration: const InputDecoration(labelText: 'Place of Sale')),
-              TextField(controller: profitController, decoration: const InputDecoration(labelText: 'Profit (optional)'), keyboardType: TextInputType.number),
-             // TextField(controller: billDateController, decoration: const InputDecoration(labelText: 'Bill Date (yyyy-mm-dd')),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/$ticketId/create-bill');
-              final body = {
-                'customerName': customerNameController.text.trim(),
-                'phoneNumber': phoneNumberController.text.trim(),
-                'gstId': gstIdController.text.trim(),
-                'modeOfPayment': modeOfPaymentController.text.trim(),
-                'onlineTrxId': onlineTrxIdController.text.trim(),
-                'placeOfSale': placeOfSaleController.text.trim(),
-                // 'billNumber': billNumberController.text.trim(),
-                // 'billDate': billDateController.text.trim(),
-                if (profitController.text.isNotEmpty) 'profit': int.tryParse(profitController.text.trim()),
-              };
-              try {
-                final response = await http.post(
-                  uri,
-                  headers: {
-                    'Authorization': 'Bearer ${authStore.token}',
-                    'Content-Type': 'application/json',
-                  },
-                  body: json.encode(body),
-                );
-                if (response.statusCode == 200) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bill created successfully')));
-                 // await fetchTickets();
-                 //  setState(() {
-                 //    isLoading = true;
-                 //  });
-                  await fetchTickets();
-                } else {
-                  showError('Failed to create bill. Status: ${response.statusCode}');
-                }
-              } catch (e) {
-                showError('Error creating bill: $e');
-              }
-            },
-            child: const Text('Create'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> showTicketInfo(int ticketId) async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
     final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/check-ticket/$ticketId');
@@ -297,6 +220,10 @@ class _ProductListingState extends State<ProductListing> {
 
       if (response.statusCode == 200) {
         final ticket = json.decode(response.body);
+
+        final totalCost =ticket['refurbishedCost']!= null &&
+            ticket['refurbishedCost']!=0? ticket['acquisitionCost'] + ticket['refurbishedCost']
+            :ticket['acquisitionCost'];
         showDialog(
           context: context,
           builder: (_) => AlertDialog(
@@ -310,6 +237,8 @@ class _ProductListingState extends State<ProductListing> {
                 Text("Color: ${ticket['colorSpecs']}"),
                 Text("Acquisition Cost: ${ticket['acquisitionCost']}"),
                 Text("Refurbished Cost: ${ticket['refurbishedCost'] ?? 'N/A'}"),
+
+                Text("Total Acquisition Cost:${totalCost}"),
                 Text("Comment: ${ticket['comment']}"),
               ],
             ),
@@ -393,7 +322,7 @@ class _ProductListingState extends State<ProductListing> {
                   Text("Ticket ID: $ticketId"),
                   Text("Product: ${ticket['productName']}"),
                   Text("Purchase Type: ${ticket['productPurchaseType']}"),
-                   Text("Invoice Date: ${ticket['invoiceDate']}"),
+                  Text("Invoice Date: ${ticket['invoiceDate']}"),
                 ],
               ),
               trailing: Row(
@@ -408,12 +337,6 @@ class _ProductListingState extends State<ProductListing> {
                     onPressed: () => confirmStatusChange(ticketId, ticket['ticketStatus']),
                     child: const Text("Change Status"),
                   ),
-                  if (ticket['ticketStatus'] == 'LISTED')
-                    IconButton(
-                      icon: const Icon(Icons.receipt_long),
-                      tooltip: 'Create Bill',
-                      onPressed: () => createBill(ticketId),
-                    ),
                 ],
               ),
             ),

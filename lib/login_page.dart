@@ -50,9 +50,10 @@ class LoginPage extends StatelessWidget {
 
                 ElevatedButton(
                   onPressed: () async {
-                    final email = _emailController.text.trim();
-                    final password = _passwordController.text;
-
+                    // final email = _emailController.text.trim();
+                    final email = 'sfjdakljlaksfd@gmail.com';
+                    // final password = _passwordController.text;
+                    final password = "abcdef123";
                     if (email.isEmpty || password.isEmpty) {
                       _showAlertDialog(context, 'Email and password are required.');
                       return;

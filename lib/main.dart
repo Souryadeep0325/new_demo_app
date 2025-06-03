@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:news_app/scrap.dart';
 import 'package:provider/provider.dart';
 import 'auth.dart';
 import 'login_page.dart';
@@ -9,8 +8,9 @@ import 'purchase_page.dart';
 import 'listing_page.dart';
 import 'gst_calculation_page.dart';
 import 'ticket_list_page.dart';
-import 'qc2.dart';
-import 'qc1.dart';
+import 'scrap.dart';
+import 'ticket_listing_page.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -38,21 +38,48 @@ class MyApp extends StatelessWidget {
         home: Consumer<AuthStore>(
           builder: (context, authStore, _) {
             return authStore.isAuthenticated
-                ? const HomePage() // HomePage when authenticated
-                : LoginPage(); // LoginPage when not authenticated
+                ? const HomePage()
+                : LoginPage();
           },
         ),
-        routes: {
-          '/login': (_) => LoginPage(),
-          '/home': (_) => const HomePage(),
-          '/sales': (_) =>  const TicketListPageSold(),
-          '/purchases': (_) => const PurchasesPage(),
-          '/listing': (_) => const TicketListPageListingPage(),
-          '/qc1': (_) => const TicketListPageQC1(),
-          '/qc2': (_) => const TicketListPageQC2(),
-          '/scrap': (_) => const ScrapPage(),
-          '/all_products': (_) => const TicketListPage(),
-          '/gst_calculation': (context) => const GSTCalculationPage(),
+        onGenerateRoute: (settings) {
+          switch (settings.name) {
+            case '/login':
+              return MaterialPageRoute(builder: (_) => LoginPage());
+            case '/home':
+              return MaterialPageRoute(builder: (_) => const HomePage());
+            case '/sales':
+              return MaterialPageRoute(builder: (_) => const TicketListPageSold());
+            case '/purchases':
+              return MaterialPageRoute(builder: (_) => const PurchasesPage());
+            case '/listing':
+              return MaterialPageRoute(builder: (_) => const ProductListing(status: 'LISTED', title: 'Listed Products'));
+            case '/qc1':
+              return MaterialPageRoute(
+                builder: (_) => const TicketListingPage(status: 'QC1', title: 'QC1 Tickets'),
+              );
+            case '/qc2':
+              return MaterialPageRoute(
+                builder: (_) => const TicketListingPage(status: 'QC2', title: 'QC2 Tickets'),
+              );
+            case '/scrap':
+              return MaterialPageRoute(
+                builder: (_) => const TicketListingPage(status: 'SCRAP', title: 'Scrap Tickets'),
+              );
+            case '/all_products':
+              return MaterialPageRoute(
+                builder: (_) => const TicketListPage(),
+              );
+            case '/gst_calculation':
+              return MaterialPageRoute(
+                  builder: (_) => const GSTCalculationPage());
+            default:
+              return MaterialPageRoute(
+                builder: (_) => const Scaffold(
+                  body: Center(child: Text('Page not found')),
+                ),
+              );
+          }
         },
       ),
     );
