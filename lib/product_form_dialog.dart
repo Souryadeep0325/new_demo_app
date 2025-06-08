@@ -157,7 +157,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Create Ticket for Item ID ${widget.itemId}', style: Theme.of(context).textTheme.headline6),
+                Text('Create Ticket for Item ID ${widget.itemId}', style: Theme.of(context).textTheme.displayLarge),
                 const SizedBox(height: 24),
 
                 Text('Product: ${widget.productName}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
