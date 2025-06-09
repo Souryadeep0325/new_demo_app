@@ -14,50 +14,53 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final authStore = Provider.of<AuthStore>(context);
+    final theme = Theme.of(context);
+    
     return AppBar(
-      backgroundColor: Colors.blue, // Blue theme
+      backgroundColor: theme.colorScheme.primary,
+      elevation: 0,
       title: Row(
         children: [
-          // Left side: Logo with Name
-          appBarTitle == 'My Home' ? IconButton(onPressed: (){}, icon: Icon(Icons.access_time_filled))
-              :const SizedBox(),
+          if (appBarTitle == 'My Home') 
+            IconButton(
+              onPressed: (){}, 
+              icon: const Icon(Icons.access_time_filled, color: Colors.white)
+            ),
           const SizedBox(width: 8),
-           Text(
-            appBarTitle, // Your app name here
-            style: const TextStyle(fontSize: 20),
+          Text(
+            appBarTitle,
+            style: theme.appBarTheme.titleTextStyle,
           ),
         ],
       ),
       actions: [
-        // Right side: Hamburger Menu
-        authStore.isAuthenticated // Check if the user is authenticated
-            ? IconButton(
-          padding: const EdgeInsets.fromLTRB(0, 0, 20, 0),
-          icon: const Icon(Icons.menu),
-          onPressed: () {
-            // When the menu icon is clicked, show an alert dialog
-            _showAlertDialog(context);
-          },
-        )
-            : Container(),
+        if (authStore.isAuthenticated)
+          IconButton(
+            padding: const EdgeInsets.fromLTRB(0, 0, 20, 0),
+            icon: const Icon(Icons.menu, color: Colors.white),
+            onPressed: () => _showAlertDialog(context),
+          ),
       ],
     );
   }
 
-  // Function to show an alert dialog with some information
   void _showAlertDialog(BuildContext context) {
+    final theme = Theme.of(context);
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Menu Clicked'),
-          content: const Text('This is the menu option, add your content here!'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Text('Menu Options', style: theme.textTheme.titleLarge),
+          content: Text(
+            'This is the menu option, add your content here!',
+            style: theme.textTheme.bodyLarge,
+          ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context); // Close the dialog
-              },
-              child: const Text('OK'),
+              onPressed: () => Navigator.pop(context),
+              child: Text('Close', style: TextStyle(color: theme.colorScheme.primary)),
             ),
           ],
         );

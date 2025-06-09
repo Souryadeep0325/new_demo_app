@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'auth.dart';
 import 'login_page.dart';
 import 'home_page.dart';
@@ -25,14 +26,95 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Flutter Web App',
         theme: ThemeData(
-          primaryColor: Colors.blue,
-          scaffoldBackgroundColor: Colors.white,
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.blue,
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF1A73E8),
+            primary: const Color(0xFF1A73E8),
+            secondary: const Color(0xFF4285F4),
+            surface: Colors.white,
+            background: const Color(0xFFF8F9FA),
+            error: const Color(0xFFDC3545),
           ),
-          textTheme: const TextTheme(
-            bodyLarge: TextStyle(color: Colors.black),
-            bodyMedium: TextStyle(color: Colors.black),
+          textTheme: TextTheme(
+            displayLarge: GoogleFonts.inter(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF202124),
+            ),
+            displayMedium: GoogleFonts.inter(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF202124),
+            ),
+            titleLarge: GoogleFonts.inter(
+              fontSize: 22,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF202124),
+            ),
+            titleMedium: GoogleFonts.inter(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF202124),
+            ),
+            bodyLarge: GoogleFonts.roboto(
+              fontSize: 16,
+              color: const Color(0xFF202124),
+            ),
+            bodyMedium: GoogleFonts.roboto(
+              fontSize: 14,
+              color: const Color(0xFF202124),
+            ),
+          ),
+          appBarTheme: AppBarTheme(
+            backgroundColor: const Color(0xFF1A73E8),
+            foregroundColor: Colors.white,
+            elevation: 0,
+            centerTitle: false,
+            titleTextStyle: GoogleFonts.inter(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: const Color(0xFF1A73E8),
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              textStyle: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFF1A73E8), width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFFDC3545)),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            labelStyle: GoogleFonts.roboto(
+              fontSize: 16,
+              color: const Color(0xFF5F6368),
+            ),
           ),
         ),
         home: Consumer<AuthStore>(
