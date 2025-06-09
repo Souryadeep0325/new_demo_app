@@ -25,6 +25,14 @@ class _TicketListingPageState extends State<TicketListingPage> {
 
   final itemIdController = TextEditingController();
   final productNameController = TextEditingController();
+  final costMinController = TextEditingController();
+  final costMaxController = TextEditingController();
+
+  DateTime? tempInvoiceDateFrom;
+  DateTime? tempInvoiceDateTo;
+  DateTime? invoiceDateFrom;
+  DateTime? invoiceDateTo;
+
   int currentPage = 1;
   int pageSize = 10;
 
@@ -46,6 +54,10 @@ class _TicketListingPageState extends State<TicketListingPage> {
       "ticketStatus": widget.status,
       if (itemIdController.text.isNotEmpty) "itemId": itemIdController.text,
       if (productNameController.text.isNotEmpty) "productName": productNameController.text,
+      if (invoiceDateFrom != null) "invoiceDateFrom": invoiceDateFrom!.toIso8601String().split('T').first,
+      if (invoiceDateTo != null) "invoiceDateTo": invoiceDateTo!.toIso8601String().split('T').first,
+      if (costMinController.text.isNotEmpty) "costMin": costMinController.text,
+      if (costMaxController.text.isNotEmpty) "costMax": costMaxController.text,
     };
 
     final uri = Uri.http('35.154.252.161:8080', '/api/ticket/search-ticket', params);
@@ -144,7 +156,7 @@ class _TicketListingPageState extends State<TicketListingPage> {
                 showError('Please select a new status.');
                 return;
               }
-              Navigator.pop(context); // Close dialog
+              Navigator.pop(context);
               changeStatus(
                 ticketId,
                 selectedStatus!,
@@ -196,7 +208,7 @@ class _TicketListingPageState extends State<TicketListingPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Status updated for ticket $ticketId')),
         );
-        await fetchTickets(); // Refresh
+        await fetchTickets();
       } else {
         showError('Failed to update status. Status: ${response.statusCode}');
       }
@@ -220,10 +232,11 @@ class _TicketListingPageState extends State<TicketListingPage> {
 
       if (response.statusCode == 200) {
         final ticket = json.decode(response.body);
+        final totalCost = ticket['refurbishedCost'] != null &&
+            ticket['refurbishedCost'] != 0
+            ? ticket['acquisitionCost'] + ticket['refurbishedCost']
+            : ticket['acquisitionCost'];
 
-        final totalCost =ticket['refurbishedCost']!= null &&
-            ticket['refurbishedCost']!=0? ticket['acquisitionCost'] + ticket['refurbishedCost']
-            :ticket['acquisitionCost'];
         showDialog(
           context: context,
           builder: (_) => AlertDialog(
@@ -237,8 +250,7 @@ class _TicketListingPageState extends State<TicketListingPage> {
                 Text("Color: ${ticket['colorSpecs']}"),
                 Text("Acquisition Cost: ${ticket['acquisitionCost']}"),
                 Text("Refurbished Cost: ${ticket['refurbishedCost'] ?? 'N/A'}"),
-
-                Text("Total Acquisition Cost:${totalCost}"),
+                Text("Total Acquisition Cost: $totalCost"),
                 Text("Comment: ${ticket['comment']}"),
               ],
             ),
@@ -276,26 +288,112 @@ class _TicketListingPageState extends State<TicketListingPage> {
                   decoration: const InputDecoration(labelText: 'Product Name'),
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: tempInvoiceDateFrom ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) setState(() => tempInvoiceDateFrom = picked);
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(labelText: 'Invoice Date From'),
+                    child: Text(tempInvoiceDateFrom != null
+                        ? tempInvoiceDateFrom!.toIso8601String().split('T').first
+                        : 'Select date'),
+                  ),
+                ),
+              ),
               const SizedBox(width: 16),
-              ElevatedButton(onPressed: fetchTickets, child: const Text("Search")),
+              Expanded(
+                child: InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: tempInvoiceDateTo ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) setState(() => tempInvoiceDateTo = picked);
+                  },
+                  child: InputDecorator(
+                    decoration: const InputDecoration(labelText: 'Invoice Date To'),
+                    child: Text(tempInvoiceDateTo != null
+                        ? tempInvoiceDateTo!.toIso8601String().split('T').first
+                        : 'Select date'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: costMinController,
+                  decoration: const InputDecoration(labelText: 'Cost Min'),
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: TextField(
+                  controller: costMaxController,
+                  decoration: const InputDecoration(labelText: 'Cost Max'),
+                  keyboardType: TextInputType.number,
+                ),
+              ),
+              const SizedBox(width: 16),
+              ElevatedButton(
+                onPressed: () {
+                  invoiceDateFrom = tempInvoiceDateFrom;
+                  invoiceDateTo = tempInvoiceDateTo;
+                  fetchTickets();
+                },
+                child: const Text("Search"),
+              ),
               const SizedBox(width: 8),
               TextButton(
                 onPressed: () {
                   itemIdController.clear();
                   productNameController.clear();
+                  costMinController.clear();
+                  costMaxController.clear();
+                  invoiceDateFrom = null;
+                  invoiceDateTo = null;
+                  tempInvoiceDateFrom = null;
+                  tempInvoiceDateTo = null;
                   fetchTickets();
                 },
                 child: const Text("Clear"),
               ),
             ],
           ),
-          if (itemIdController.text.isNotEmpty || productNameController.text.isNotEmpty)
+          if (itemIdController.text.isNotEmpty ||
+              productNameController.text.isNotEmpty ||
+              invoiceDateFrom != null ||
+              invoiceDateTo != null ||
+              costMinController.text.isNotEmpty ||
+              costMaxController.text.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 'Filters: '
                     '${itemIdController.text.isNotEmpty ? 'Item ID = ${itemIdController.text} ' : ''}'
-                    '${productNameController.text.isNotEmpty ? 'Product = ${productNameController.text}' : ''}',
+                    '${productNameController.text.isNotEmpty ? 'Product = ${productNameController.text} ' : ''}'
+                    '${invoiceDateFrom != null ? 'From = ${invoiceDateFrom!.toIso8601String().split('T').first} ' : ''}'
+                    '${invoiceDateTo != null ? 'To = ${invoiceDateTo!.toIso8601String().split('T').first} ' : ''}'
+                    '${costMinController.text.isNotEmpty ? 'Cost ≥ ${costMinController.text} ' : ''}'
+                    '${costMaxController.text.isNotEmpty ? 'Cost ≤ ${costMaxController.text}' : ''}',
                 style: const TextStyle(fontStyle: FontStyle.italic),
               ),
             ),
