@@ -1,4 +1,3 @@
-
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -7,6 +6,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'auth.dart';
+import 'widgets/custom_dialog.dart';
 
 class TicketListPageSold extends StatefulWidget {
   const TicketListPageSold({super.key});
@@ -82,34 +82,90 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
 
         showDialog(
           context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Bill Details'),
+          builder: (_) => CustomDialog(
+            title: 'Bill Details',
+            maxWidth: 500,
             content: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                buildBillRow("Customer Name", bill['customerName']),
-                buildBillRow("Phone Number", bill['phoneNumber']),
-                buildBillRow("GST ID", bill['gstId']),
-                buildBillRow("Bill Number", bill['billNumber']),
-                buildBillRow("Bill Date", bill['billDate']),
-                buildBillRow("Mode of Payment", bill['modeOfPayment']),
-                if (bill['onlineTrxId'] != null && bill['onlineTrxId'].toString().isNotEmpty)
-                  buildBillRow("Online Trx ID", bill['onlineTrxId']),
-                buildBillRow("Place of Sale", bill['placeOfSale']),
-                buildBillRow("Profit", "₹${bill['profit']}"),
-                buildBillRow("Client ID", bill['clientId'].toString()),
+                InfoSection(
+                  title: 'Customer Information',
+                  rows: [
+                    InfoRow(
+                      label: 'Customer Name',
+                      value: bill['customerName'],
+                    ),
+                    InfoRow(
+                      label: 'Phone Number',
+                      value: bill['phoneNumber'],
+                    ),
+                    if (bill['gstId'] != null && bill['gstId'].toString().isNotEmpty)
+                      InfoRow(
+                        label: 'GST ID',
+                        value: bill['gstId'],
+                      ),
+                  ],
+                ),
+                InfoSection(
+                  title: 'Bill Information',
+                  rows: [
+                    InfoRow(
+                      label: 'Bill Number',
+                      value: bill['billNumber'],
+                      isHighlighted: true,
+                    ),
+                    InfoRow(
+                      label: 'Bill Date',
+                      value: bill['billDate'],
+                    ),
+                  ],
+                ),
+                InfoSection(
+                  title: 'Payment Details',
+                  rows: [
+                    InfoRow(
+                      label: 'Mode of Payment',
+                      value: bill['modeOfPayment'],
+                    ),
+                    if (bill['onlineTrxId'] != null && bill['onlineTrxId'].toString().isNotEmpty)
+                      InfoRow(
+                        label: 'Online Trx ID',
+                        value: bill['onlineTrxId'],
+                      ),
+                    InfoRow(
+                      label: 'Place of Sale',
+                      value: bill['placeOfSale'],
+                    ),
+                  ],
+                ),
+                InfoSection(
+                  title: 'Financial Details',
+                  hasDivider: false,
+                  rows: [
+                    InfoRow(
+                      label: 'Profit',
+                      value: '₹${bill['profit']}',
+                      isHighlighted: true,
+                    ),
+                    InfoRow(
+                      label: 'Client ID',
+                      value: bill['clientId'].toString(),
+                    ),
+                  ],
+                ),
               ],
             ),
             actions: [
-              TextButton(
+              DialogButton(
+                label: 'Close',
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
               ),
-              ElevatedButton.icon(
+              DialogButton(
+                label: 'Download PDF',
+                isPrimary: true,
                 onPressed: () => generatePdf(bill),
-                icon: const Icon(Icons.download),
-                label: const Text('Download PDF'),
+                icon: Icons.download,
               ),
             ],
           ),
@@ -120,22 +176,6 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
     } catch (e) {
       showError('Error fetching ticket bill: $e');
     }
-  }
-
-  Widget buildBillRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "$label: ",
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
   }
 
   Future<void> generatePdf(Map<String, dynamic> bill) async {
@@ -200,28 +240,69 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
 
       if (response.statusCode == 200) {
         final ticket = json.decode(response.body);
-        final totalCost =ticket['refurbishedCost']!= null &&
-            ticket['refurbishedCost']!=0? ticket['acquisitionCost'] + ticket['refurbishedCost'] :ticket['acquisitionCost'];
+        final totalCost = ticket['refurbishedCost'] != null &&
+            ticket['refurbishedCost'] != 0
+            ? ticket['acquisitionCost'] + ticket['refurbishedCost']
+            : ticket['acquisitionCost'];
+
         showDialog(
           context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Ticket Details'),
+          builder: (_) => CustomDialog(
+            title: 'Ticket Details',
+            maxWidth: 500,
             content: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text("Product: ${ticket['productName']}"),
-                Text("Acquisition Cost: ${ticket['acquisitionCost']}"),
-                Text("Refurbished Cost: ${ticket['refurbishedCost'] ?? 'N/A'}"),
-                Text("Total Acquisition Cost:${totalCost}"),
-                Text("New Phone:${ticket['sealedFlag']}"),
-                Text("Comment: ${ticket['comment']}"),
+                InfoSection(
+                  title: 'Product Information',
+                  rows: [
+                    InfoRow(
+                      label: 'Product Name',
+                      value: ticket['productName'],
+                    ),
+                    InfoRow(
+                      label: 'New Phone',
+                      value: ticket['sealedFlag'] == 'Y' ? 'Yes' : 'No',
+                      isHighlighted: true,
+                    ),
+                  ],
+                ),
+                InfoSection(
+                  title: 'Cost Details',
+                  rows: [
+                    InfoRow(
+                      label: 'Acquisition Cost',
+                      value: '₹${ticket['acquisitionCost']}',
+                    ),
+                    InfoRow(
+                      label: 'Refurbished Cost',
+                      value: ticket['refurbishedCost'] != null ? '₹${ticket['refurbishedCost']}' : 'N/A',
+                    ),
+                    InfoRow(
+                      label: 'Total Cost',
+                      value: '₹$totalCost',
+                      isHighlighted: true,
+                    ),
+                  ],
+                ),
+                if (ticket['comment'] != null && ticket['comment'].toString().isNotEmpty)
+                  InfoSection(
+                    title: 'Additional Information',
+                    hasDivider: false,
+                    rows: [
+                      InfoRow(
+                        label: 'Comment',
+                        value: ticket['comment'],
+                      ),
+                    ],
+                  ),
               ],
             ),
             actions: [
-              TextButton(
+              DialogButton(
+                label: 'Close',
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
               ),
             ],
           ),
@@ -290,24 +371,62 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
 
         showDialog(
           context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('GST Details (Used Phone)'),
+          builder: (_) => CustomDialog(
+            title: 'GST Details (New Phone)',
+            maxWidth: 500,
             content: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text("New Phone: $isNew"),
-                Text("Total Cost: ₹${totalCost.toStringAsFixed(2)}"),
-                Text("Selling Price: ₹${totalSellingCost.toStringAsFixed(2)}"),
-                Text("Profit Margin: ₹${margin.toStringAsFixed(2)}"),
-                Text("Applicable GST on Margin: ₹${taxToGovt.toStringAsFixed(2)}"),
-                Text("HSN Code: 8517"),
+                InfoSection(
+                  title: 'Product Status',
+                  rows: [
+                    InfoRow(
+                      label: 'New Phone',
+                      value: isNew,
+                      isHighlighted: true,
+                    ),
+                  ],
+                ),
+                InfoSection(
+                  title: 'Cost Information',
+                  rows: [
+                    InfoRow(
+                      label: 'Total Cost',
+                      value: '₹${totalCost.toStringAsFixed(2)}',
+                    ),
+                    InfoRow(
+                      label: 'Selling Price',
+                      value: '₹${totalSellingCost.toStringAsFixed(2)}',
+                    ),
+                    InfoRow(
+                      label: 'Profit Margin',
+                      value: '₹${margin.toStringAsFixed(2)}',
+                      isHighlighted: true,
+                    ),
+                  ],
+                ),
+                InfoSection(
+                  title: 'GST Details',
+                  hasDivider: false,
+                  rows: [
+                    InfoRow(
+                      label: 'Applicable GST on Margin',
+                      value: '₹${taxToGovt.toStringAsFixed(2)}',
+                      isHighlighted: true,
+                    ),
+                    InfoRow(
+                      label: 'HSN Code',
+                      value: '8517',
+                    ),
+                  ],
+                ),
               ],
             ),
             actions: [
-              TextButton(
+              DialogButton(
+                label: 'Close',
                 onPressed: () => Navigator.pop(context),
-                child: const Text('Close'),
               ),
             ],
           ),
@@ -381,14 +500,31 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
     setState(() => isLoading = false);
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
+      builder: (_) => CustomDialog(
+        title: 'Error',
+        maxWidth: 400,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
         actions: [
-          TextButton(
+          DialogButton(
+            label: 'OK',
+            isPrimary: true,
             onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          )
+          ),
         ],
       ),
     );

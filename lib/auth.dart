@@ -7,10 +7,12 @@ class AuthStore extends ChangeNotifier {
 
   String _role = 'guest';
   String? _token;
+  String? _username;
 
   bool get isAuthenticated => _isAuthenticated;
   String get role => _role;
   String? get token => _token;
+  String? get username => _username;
 
   Future<bool> login(String email, String password) async {
     final url = Uri.parse('http://35.154.252.161:8080/api/auth/login');
@@ -30,6 +32,7 @@ class AuthStore extends ChangeNotifier {
           _token = data['token'];
           _role = 'ROLE_MANAGER';
           _isAuthenticated = true;
+          _username = email.split('@')[0];
           notifyListeners();
           return true;
         }
@@ -45,6 +48,7 @@ class AuthStore extends ChangeNotifier {
     _isAuthenticated = false;
     _role = 'guest';
     _token = null;
+    _username = null;
     notifyListeners();
   }
 }

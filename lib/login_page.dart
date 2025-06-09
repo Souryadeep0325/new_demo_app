@@ -13,81 +13,97 @@ class LoginPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final authStore = Provider.of<AuthStore>(context);
+    final theme = Theme.of(context);
 
     return CentredView(
       child: Scaffold(
-        appBar: const CustomAppBar(appBarTitle: 'Sign-In'),
+        appBar: const CustomAppBar(appBarTitle: 'Sign In'),
         body: Center(
           child: Container(
-            height: 400,
-            width: 400,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('Login', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Welcome Back',
+                      style: theme.textTheme.displaySmall,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Sign in to continue to your account',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onBackground.withOpacity(0.7),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 32),
 
-                // Email
-                TextField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                ),
+                    // Email
+                    TextField(
+                      controller: _emailController,
+                      decoration: const InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.email_outlined),
+                      ),
+                    ),
 
-                const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                // Password
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Password'),
-                ),
+                    // Password
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Password',
+                        prefixIcon: Icon(Icons.lock_outline),
+                      ),
+                    ),
 
-                const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                ElevatedButton(
-                  onPressed: () async {
-                    // final email = _emailController.text.trim();
+                    ElevatedButton(
+                      onPressed: () async {// final email = _emailController.text.trim();
                     final email = 'sfjdakljlaksfd@gmail.com';
                     // final password = _passwordController.text;
                     final password = "abcdef123";
-                    if (email.isEmpty || password.isEmpty) {
-                      _showAlertDialog(context, 'Email and password are required.');
-                      return;
-                    }
+                        await authStore.login(email, password);
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Text('Sign In'),
+                      ),
+                    ),
 
-                    final success = await authStore.login(email, password);
-                    if (success) {
-                      Navigator.pushReplacementNamed(context, '/home');
-                    } else {
-                      _showAlertDialog(context, 'Invalid credentials or role not allowed.');
-                    }
-                  },
-                  child: const Text('Login'),
+                    const SizedBox(height: 16),
+                    
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Forgot your password?',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onBackground.withOpacity(0.7),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            // TODO: Implement forgot password
+                          },
+                          child: const Text('Reset it here'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  void _showAlertDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Login Error'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          )
-        ],
       ),
     );
   }

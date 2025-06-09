@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'auth.dart';
+import 'widgets/custom_dialog.dart';
 
 class ProductListing extends StatefulWidget {
   final String status;
@@ -214,70 +215,143 @@ class _ProductListingState extends State<ProductListing> {
     final TextEditingController onlineTrxIdController = TextEditingController();
     final TextEditingController placeOfSaleController = TextEditingController();
     final TextEditingController profitController = TextEditingController();
-    final TextEditingController billNumberController = TextEditingController();
-    final TextEditingController billDateController = TextEditingController();
+    bool isSubmitting = false;
 
     await showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Create Bill'),
-        content: SingleChildScrollView(
-          child: Column(
+      builder: (_) => StatefulBuilder(
+        builder: (context, setState) => CustomDialog(
+          title: 'Create Bill',
+          maxWidth: 500,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextField(controller: customerNameController, decoration: const InputDecoration(labelText: 'Customer Name')),
-              TextField(controller: phoneNumberController, decoration: const InputDecoration(labelText: 'Phone Number'), keyboardType: TextInputType.phone),
-              TextField(controller: gstIdController, decoration: const InputDecoration(labelText: 'GST ID (optional)')),
-              TextField(controller: modeOfPaymentController, decoration: const InputDecoration(labelText: 'Mode of Payment')),
-              TextField(controller: onlineTrxIdController, decoration: const InputDecoration(labelText: 'Online Transaction ID')),
-              TextField(controller: placeOfSaleController, decoration: const InputDecoration(labelText: 'Place of Sale')),
-              TextField(controller: profitController, decoration: const InputDecoration(labelText: 'Profit (optional)'), keyboardType: TextInputType.number),
-             // TextField(controller: billDateController, decoration: const InputDecoration(labelText: 'Bill Date (yyyy-mm-dd')),
+              InfoSection(
+                title: 'Customer Information',
+                rows: const [],
+                hasDivider: false,
+              ),
+              TextField(
+                controller: customerNameController,
+                decoration: const InputDecoration(
+                  labelText: 'Customer Name',
+                  prefixIcon: Icon(Icons.person),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: phoneNumberController,
+                decoration: const InputDecoration(
+                  labelText: 'Phone Number',
+                  prefixIcon: Icon(Icons.phone),
+                ),
+                keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: gstIdController,
+                decoration: const InputDecoration(
+                  labelText: 'GST ID (optional)',
+                  prefixIcon: Icon(Icons.receipt),
+                ),
+              ),
+              const SizedBox(height: 24),
+              InfoSection(
+                title: 'Payment Details',
+                rows: const [],
+                hasDivider: false,
+              ),
+              TextField(
+                controller: modeOfPaymentController,
+                decoration: const InputDecoration(
+                  labelText: 'Mode of Payment',
+                  prefixIcon: Icon(Icons.payment),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: onlineTrxIdController,
+                decoration: const InputDecoration(
+                  labelText: 'Online Transaction ID',
+                  prefixIcon: Icon(Icons.confirmation_number),
+                ),
+              ),
+              const SizedBox(height: 24),
+              InfoSection(
+                title: 'Additional Information',
+                rows: const [],
+                hasDivider: false,
+              ),
+              TextField(
+                controller: placeOfSaleController,
+                decoration: const InputDecoration(
+                  labelText: 'Place of Sale',
+                  prefixIcon: Icon(Icons.location_on),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: profitController,
+                decoration: const InputDecoration(
+                  labelText: 'Profit (optional)',
+                  prefixIcon: Icon(Icons.trending_up),
+                ),
+                keyboardType: TextInputType.number,
+              ),
             ],
           ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/$ticketId/create-bill');
-              final body = {
-                'customerName': customerNameController.text.trim(),
-                'phoneNumber': phoneNumberController.text.trim(),
-                'gstId': gstIdController.text.trim(),
-                'modeOfPayment': modeOfPaymentController.text.trim(),
-                'onlineTrxId': onlineTrxIdController.text.trim(),
-                'placeOfSale': placeOfSaleController.text.trim(),
-                // 'billNumber': billNumberController.text.trim(),
-                // 'billDate': billDateController.text.trim(),
-                if (profitController.text.isNotEmpty) 'profit': int.tryParse(profitController.text.trim()),
-              };
-              try {
-                final response = await http.post(
-                  uri,
-                  headers: {
-                    'Authorization': 'Bearer ${authStore.token}',
-                    'Content-Type': 'application/json',
-                  },
-                  body: json.encode(body),
-                );
-                if (response.statusCode == 200) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bill created successfully')));
-                 // await fetchTickets();
-                 //  setState(() {
-                 //    isLoading = true;
-                 //  });
-                  await fetchTickets();
-                } else {
-                  showError('Failed to create bill. Status: ${response.statusCode}');
+          actions: [
+            DialogButton(
+              label: 'Cancel',
+              onPressed: () => Navigator.pop(context),
+            ),
+            DialogButton(
+              label: 'Create',
+              isPrimary: true,
+              isLoading: isSubmitting,
+              onPressed: () async {
+                setState(() => isSubmitting = true);
+                
+                final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/$ticketId/create-bill');
+                final body = {
+                  'customerName': customerNameController.text.trim(),
+                  'phoneNumber': phoneNumberController.text.trim(),
+                  'gstId': gstIdController.text.trim(),
+                  'modeOfPayment': modeOfPaymentController.text.trim(),
+                  'onlineTrxId': onlineTrxIdController.text.trim(),
+                  'placeOfSale': placeOfSaleController.text.trim(),
+                  if (profitController.text.isNotEmpty) 'profit': int.tryParse(profitController.text.trim()),
+                };
+                
+                try {
+                  final response = await http.post(
+                    uri,
+                    headers: {
+                      'Authorization': 'Bearer ${authStore.token}',
+                      'Content-Type': 'application/json',
+                    },
+                    body: json.encode(body),
+                  );
+                  
+                  if (response.statusCode == 200) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Bill created successfully')),
+                    );
+                    await fetchTickets();
+                  } else {
+                    showError('Failed to create bill. Status: ${response.statusCode}');
+                  }
+                } catch (e) {
+                  showError('Error creating bill: $e');
+                } finally {
+                  setState(() => isSubmitting = false);
                 }
-              } catch (e) {
-                showError('Error creating bill: $e');
-              }
-            },
-            child: const Text('Create'),
-          ),
-        ],
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'auth.dart';
+import 'widgets/custom_dialog.dart';
 
 class TicketListingPage extends StatefulWidget {
   final String status;
@@ -96,11 +97,31 @@ class _TicketListingPageState extends State<TicketListingPage> {
   void showError(String message) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
+      builder: (_) => CustomDialog(
+        title: 'Error',
+        maxWidth: 400,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+          DialogButton(
+            label: 'OK',
+            isPrimary: true,
+            onPressed: () => Navigator.pop(context),
+          ),
         ],
       ),
     );
@@ -117,14 +138,28 @@ class _TicketListingPageState extends State<TicketListingPage> {
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Change Ticket Status'),
+      builder: (_) => CustomDialog(
+        title: 'Change Ticket Status',
         content: StatefulBuilder(
           builder: (context, setState) => Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              InfoSection(
+                title: 'Status Information',
+                rows: [
+                  InfoRow(
+                    label: 'Current Status',
+                    value: currentStatus,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
               DropdownButtonFormField<String>(
-                decoration: const InputDecoration(labelText: 'New Status'),
+                decoration: const InputDecoration(
+                  labelText: 'New Status',
+                  prefixIcon: Icon(Icons.swap_horiz),
+                ),
                 value: selectedStatus,
                 items: statusOptions.map((status) {
                   return DropdownMenuItem(
@@ -136,21 +171,35 @@ class _TicketListingPageState extends State<TicketListingPage> {
                   setState(() => selectedStatus = value);
                 },
               ),
+              const SizedBox(height: 16),
               TextField(
                 controller: commentController,
-                decoration: const InputDecoration(labelText: 'Comment (optional)'),
+                decoration: const InputDecoration(
+                  labelText: 'Comment (optional)',
+                  prefixIcon: Icon(Icons.comment),
+                ),
+                maxLines: 3,
               ),
+              const SizedBox(height: 16),
               TextField(
                 controller: costController,
-                decoration: const InputDecoration(labelText: 'Cost (optional)'),
+                decoration: const InputDecoration(
+                  labelText: 'Cost (optional)',
+                  prefixIcon: Icon(Icons.currency_rupee),
+                ),
                 keyboardType: TextInputType.number,
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
+          DialogButton(
+            label: 'Cancel',
+            onPressed: () => Navigator.pop(context),
+          ),
+          DialogButton(
+            label: 'Submit',
+            isPrimary: true,
             onPressed: () {
               if (selectedStatus == null) {
                 showError('Please select a new status.');
@@ -164,7 +213,6 @@ class _TicketListingPageState extends State<TicketListingPage> {
                 costText: costController.text.trim(),
               );
             },
-            child: const Text('Submit'),
           ),
         ],
       ),
@@ -239,23 +287,65 @@ class _TicketListingPageState extends State<TicketListingPage> {
 
         showDialog(
           context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Ticket Details'),
+          builder: (_) => CustomDialog(
+            title: 'Ticket Details',
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Product: ${ticket['productName']}"),
-                Text("RAM/ROM: ${ticket['ramRomSpecs']}"),
-                Text("Color: ${ticket['colorSpecs']}"),
-                Text("Acquisition Cost: ${ticket['acquisitionCost']}"),
-                Text("Refurbished Cost: ${ticket['refurbishedCost'] ?? 'N/A'}"),
-                Text("Total Acquisition Cost: $totalCost"),
-                Text("Comment: ${ticket['comment']}"),
+                InfoSection(
+                  title: 'Product Information',
+                  rows: [
+                    InfoRow(
+                      label: 'Product Name',
+                      value: ticket['productName'] ?? 'N/A',
+                    ),
+                    InfoRow(
+                      label: 'RAM/ROM',
+                      value: ticket['ramRomSpecs'] ?? 'N/A',
+                    ),
+                    InfoRow(
+                      label: 'Color',
+                      value: ticket['colorSpecs'] ?? 'N/A',
+                    ),
+                  ],
+                ),
+                InfoSection(
+                  title: 'Cost Details',
+                  rows: [
+                    InfoRow(
+                      label: 'Acquisition Cost',
+                      value: '₹${ticket['acquisitionCost']}',
+                    ),
+                    InfoRow(
+                      label: 'Refurbished Cost',
+                      value: ticket['refurbishedCost'] != null ? '₹${ticket['refurbishedCost']}' : 'N/A',
+                    ),
+                    InfoRow(
+                      label: 'Total Cost',
+                      value: '₹$totalCost',
+                      isHighlighted: true,
+                    ),
+                  ],
+                ),
+                if (ticket['comment'] != null && ticket['comment'].toString().isNotEmpty)
+                  InfoSection(
+                    title: 'Additional Information',
+                    hasDivider: false,
+                    rows: [
+                      InfoRow(
+                        label: 'Comment',
+                        value: ticket['comment'],
+                      ),
+                    ],
+                  ),
               ],
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+              DialogButton(
+                label: 'Close',
+                onPressed: () => Navigator.pop(context),
+              ),
             ],
           ),
         );
