@@ -49,7 +49,7 @@ class _ProductListingState extends State<ProductListing> {
       if (productNameController.text.isNotEmpty) "productName": productNameController.text,
     };
 
-    final uri = Uri.http('35.154.252.161:8080', '/api/ticket/search-ticket', params);
+    final uri = Uri.https('api.abcoped.shop', '/api/ticket/search-ticket', params);
 
     try {
       final response = await http.get(
@@ -163,7 +163,7 @@ class _ProductListingState extends State<ProductListing> {
   Future<void> changeStatus(int ticketId, String newStatus,
       {String? comment, String? costText}) async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
-    final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/$ticketId/status');
+    final uri = Uri.parse('https://api.abcoped.shop/api/ticket/$ticketId/status');
 
     final Map<String, dynamic> body = {
       'newStatus': newStatus,
@@ -313,7 +313,7 @@ class _ProductListingState extends State<ProductListing> {
               onPressed: () async {
                 setState(() => isSubmitting = true);
                 
-                final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/$ticketId/create-bill');
+                final uri = Uri.parse('https://api.abcoped.shop/api/ticket/$ticketId/create-bill');
                 final body = {
                   'customerName': customerNameController.text.trim(),
                   'phoneNumber': phoneNumberController.text.trim(),
@@ -358,7 +358,7 @@ class _ProductListingState extends State<ProductListing> {
 
   Future<void> showTicketInfo(int ticketId) async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
-    final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/check-ticket/$ticketId');
+    final uri = Uri.parse('https://api.abcoped.shop/api/ticket/check-ticket/$ticketId');
 
     try {
       final response = await http.get(

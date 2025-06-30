@@ -77,9 +77,9 @@ class _PurchasesPageState extends State<PurchasesPage> {
         'page': page.toString(),
         if (brand.isNotEmpty) 'brand': brand,
       };
-      uri = Uri.http('35.154.252.161:8080', '/api/product/brand/names/products', queryParams);
+      uri = Uri.https('api.abcoped.shop', '/api/product/brand/names/products', queryParams);
     } else {
-      uri = Uri.http('35.154.252.161:8080', '/api/product/brand/names', {
+      uri = Uri.https('api.abcoped.shop', '/api/product/brand/names', {
         'brand': brand,
         'page': page.toString(),
       });

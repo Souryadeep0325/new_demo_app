@@ -23,7 +23,7 @@ class _TicketListPageState extends State<TicketListPage> {
 
   Future<void> fetchTickets() async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
-    final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/search-ticket');
+    final uri = Uri.parse('https://api.abcoped.shop/api/ticket/search-ticket');
 
     try {
       final response = await http.get(
@@ -49,7 +49,7 @@ class _TicketListPageState extends State<TicketListPage> {
 
   Future<void> changeStatus(int ticketId) async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
-    final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/$ticketId/status');
+    final uri = Uri.parse('https://api.abcoped.shop/api/ticket/$ticketId/status');
 
     try {
       final response = await http.post(

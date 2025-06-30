@@ -43,7 +43,7 @@ class _TicketListPageQC1State extends State<TicketListPageQC1> {
       queryParameters['productName'] = currentProductName!;
     }
 
-    final uri = Uri.http('35.154.252.161:8080', '/api/ticket/search-ticket', queryParameters);
+    final uri = Uri.https('api.abcoped.shop', '/api/ticket/search-ticket', queryParameters);
 
     try {
       final response = await http.get(
@@ -85,7 +85,7 @@ class _TicketListPageQC1State extends State<TicketListPageQC1> {
 
   Future<void> changeStatus(int ticketId) async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
-    final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/$ticketId/status');
+    final uri = Uri.parse('https://api.abcoped.shop/api/ticket/$ticketId/status');
 
     try {
       final response = await http.post(

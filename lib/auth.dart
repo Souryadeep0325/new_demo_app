@@ -15,7 +15,7 @@ class AuthStore extends ChangeNotifier {
   String? get username => _username;
 
   Future<bool> login(String email, String password) async {
-    final url = Uri.parse('http://35.154.252.161:8080/api/auth/login');
+    final url = Uri.parse('https://api.abcoped.shop/api/auth/login');
 
     try {
       final response = await http.post(

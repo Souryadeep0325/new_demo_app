@@ -142,7 +142,7 @@ class HomePage extends StatelessWidget {
   }
 
   Future<void> _logout(BuildContext context, AuthStore authStore) async {
-    const logoutUrl = 'http://35.154.252.161:8080/api/auth/logout';
+    const logoutUrl = 'https://api.abcoped.shop/api/auth/logout';
 
     try {
       final response = await http.post(

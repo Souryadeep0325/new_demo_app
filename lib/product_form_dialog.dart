@@ -57,7 +57,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
     try {
       final authStore = Provider.of<AuthStore>(context, listen: false);
       final response = await http.get(
-        Uri.parse('http://35.154.252.161:8080/api/product/select-specs/${widget.itemId}'),
+        Uri.parse('https://api.abcoped.shop/api/product/select-specs/${widget.itemId}'),
         headers: {'Authorization': 'Bearer ${authStore.token}'},
       );
       if (response.statusCode == 200) {
@@ -116,7 +116,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
     setState(() => isSubmitting = true);
 
     final response = await http.post(
-      Uri.parse('http://35.154.252.161:8080/api/ticket/create-ticket'),
+      Uri.parse('https://api.abcoped.shop/api/ticket/create-ticket'),
       headers: {
         'Authorization': 'Bearer ${authStore.token}',
         'Content-Type': 'application/json',

@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
+// import 'package:pdf/pdf.dart';
+// import 'package:pdf/widgets.dart' as pw;
+// import 'package:printing/printing.dart';
 import 'auth.dart';
 import 'widgets/custom_dialog.dart';
 
@@ -40,7 +40,7 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
 
   Future<void> fetchTickets() async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
-    final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/search-ticket/SOLD');
+    final uri = Uri.parse('https://api.abcoped.shop/api/ticket/search-ticket/SOLD');
 
     try {
       final response = await http.get(
@@ -66,7 +66,7 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
 
   Future<void> showTicketInfo(int ticketId) async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
-    final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/check-bill/$ticketId');
+    final uri = Uri.parse('https://api.abcoped.shop/api/ticket/check-bill/$ticketId');
 
     try {
       final response = await http.get(
@@ -164,7 +164,7 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
               DialogButton(
                 label: 'Download PDF',
                 isPrimary: true,
-                onPressed: () => generatePdf(bill),
+                onPressed: () => {},
                 icon: Icons.download,
               ),
             ],
@@ -178,56 +178,56 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
     }
   }
 
-  Future<void> generatePdf(Map<String, dynamic> bill) async {
-    final pdf = pw.Document();
-
-    pdf.addPage(
-      pw.Page(
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text('Bill Details', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 16),
-              buildPdfRow('Customer Name', bill['customerName']),
-              buildPdfRow('Phone Number', bill['phoneNumber']),
-              buildPdfRow('GST ID', bill['gstId']),
-              buildPdfRow('Bill Number', bill['billNumber']),
-              buildPdfRow('Bill Date', bill['billDate']),
-              buildPdfRow('Mode of Payment', bill['modeOfPayment']),
-              if (bill['onlineTrxId'] != null && bill['onlineTrxId'].toString().isNotEmpty)
-                buildPdfRow('Online Trx ID', bill['onlineTrxId']),
-              buildPdfRow('Place of Sale', bill['placeOfSale']),
-              buildPdfRow('Profit', "₹${bill['profit']}"),
-              buildPdfRow('Client ID', bill['clientId'].toString()),
-            ],
-          );
-        },
-      ),
-    );
-
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-      name: 'bill_${bill['billNumber']}.pdf',
-    );
-  }
-
-  pw.Widget buildPdfRow(String label, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 4),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Text('$label: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          pw.Expanded(child: pw.Text(value)),
-        ],
-      ),
-    );
-  }
+  // Future<void> generatePdf(Map<String, dynamic> bill) async {
+  //   final pdf = pw.Document();
+  //
+  //   pdf.addPage(
+  //     pw.Page(
+  //       build: (pw.Context context) {
+  //         return pw.Column(
+  //           crossAxisAlignment: pw.CrossAxisAlignment.start,
+  //           children: [
+  //             pw.Text('Bill Details', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+  //             pw.SizedBox(height: 16),
+  //             buildPdfRow('Customer Name', bill['customerName']),
+  //             buildPdfRow('Phone Number', bill['phoneNumber']),
+  //             buildPdfRow('GST ID', bill['gstId']),
+  //             buildPdfRow('Bill Number', bill['billNumber']),
+  //             buildPdfRow('Bill Date', bill['billDate']),
+  //             buildPdfRow('Mode of Payment', bill['modeOfPayment']),
+  //             if (bill['onlineTrxId'] != null && bill['onlineTrxId'].toString().isNotEmpty)
+  //               buildPdfRow('Online Trx ID', bill['onlineTrxId']),
+  //             buildPdfRow('Place of Sale', bill['placeOfSale']),
+  //             buildPdfRow('Profit', "₹${bill['profit']}"),
+  //             buildPdfRow('Client ID', bill['clientId'].toString()),
+  //           ],
+  //         );
+  //       },
+  //     ),
+  //   );
+  //
+  //   await Printing.layoutPdf(
+  //     onLayout: (PdfPageFormat format) async => pdf.save(),
+  //     name: 'bill_${bill['billNumber']}.pdf',
+  //   );
+  // }
+  //
+  // pw.Widget buildPdfRow(String label, String value) {
+  //   return pw.Padding(
+  //     padding: const pw.EdgeInsets.symmetric(vertical: 4),
+  //     child: pw.Row(
+  //       crossAxisAlignment: pw.CrossAxisAlignment.start,
+  //       children: [
+  //         pw.Text('$label: ', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+  //         pw.Expanded(child: pw.Text(value)),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Future<void> showTicketDetails(int ticketId) async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
-    final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/check-ticket/$ticketId');
+    final uri = Uri.parse('https://api.abcoped.shop/api/ticket/check-ticket/$ticketId');
 
     try {
       final response = await http.get(
@@ -317,7 +317,7 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
 
   Future<void> showGstDetails(int ticketId) async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
-    final uri = Uri.parse('http://35.154.252.161:8080/api/ticket/check-ticket/$ticketId');
+    final uri = Uri.parse('https://api.abcoped.shop/api/ticket/check-ticket/$ticketId');
     late final totalCost;
     late final totalSellingCost;
     late final isNew;
@@ -342,7 +342,7 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
       showError('Error fetching ticket details: $e');
     }
 
-    final url = Uri.parse('http://35.154.252.161:8080/api/ticket/check-bill/$ticketId');
+    final url = Uri.parse('https://api.abcoped.shop/api/ticket/check-bill/$ticketId');
 
     try {
       final response = await http.get(
