@@ -7,7 +7,8 @@ import 'gst_calculation_page.dart';
 import 'package:http/http.dart' as http;
 
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  final VoidCallback? toggleTheme;
+  const HomePage({super.key, this.toggleTheme});
 
   @override
   Widget build(BuildContext context) {
@@ -37,32 +38,87 @@ class HomePage extends StatelessWidget {
 
     return CentredView(
       child: Scaffold(
-        appBar: CustomAppBar(appBarTitle: 'My Home'),
+        appBar: CustomAppBar(
+          appBarTitle: 'Dashboard',
+          actions: [
+            if (toggleTheme != null)
+              IconButton(
+                icon: const Icon(Icons.brightness_6, color: Colors.white),
+                tooltip: 'Toggle Theme',
+                onPressed: toggleTheme,
+              ),
+          ],
+        ),
         body: Container(
           color: theme.colorScheme.background,
-          padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 50),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Welcome back, ${authStore.username ?? 'User'}!',
-                style: theme.textTheme.displayMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Manage your tasks and activities',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onBackground.withOpacity(0.7),
-                ),
+              // User Info Section
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: theme.colorScheme.primary,
+                    child: Text(
+                      (authStore.username?.isNotEmpty ?? false)
+                          ? authStore.username![0].toUpperCase()
+                          : 'U',
+                      style: const TextStyle(fontSize: 28, color: Colors.white),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome, ${authStore.username ?? 'User'}',
+                        style: theme.textTheme.titleLarge,
+                      ),
+                      Text(
+                        authStore.role,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      authStore.logout();
+                      Navigator.pushReplacementNamed(context, '/login');
+                    },
+                    icon: const Icon(Icons.logout),
+                    label: const Text('Logout'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.error,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 32),
+              // Dashboard Stats (optional, placeholder)
+              Row(
+                children: [
+                  _buildStatCard('Total Tickets', '123', theme),
+                  const SizedBox(width: 16),
+                  _buildStatCard('Pending', '12', theme),
+                  const SizedBox(width: 16),
+                  _buildStatCard('Completed', '111', theme),
+                ],
+              ),
+              const SizedBox(height: 32),
+              // Navigation Grid
               Expanded(
                 child: GridView.builder(
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
+                    crossAxisCount: 3,
                     crossAxisSpacing: 24.0,
                     mainAxisSpacing: 24.0,
-                    childAspectRatio: 4.0,
+                    childAspectRatio: 2.5,
                   ),
                   itemCount: tileList.length,
                   itemBuilder: (context, index) {
@@ -79,38 +135,44 @@ class HomePage extends StatelessWidget {
 
   Widget _buildTile(BuildContext context, Map<String, String> tile) {
     final theme = Theme.of(context);
-    
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: theme.colorScheme.outline.withOpacity(0.2)),
-      ),
-      child: InkWell(
-        onTap: () => Navigator.pushNamed(context, tile['route']!),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Row(
-            children: [
-              Icon(
-                _getIconForTitle(tile['title']!),
-                color: theme.colorScheme.primary,
-                size: 24,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  tile['title']!,
-                  style: theme.textTheme.titleMedium,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: theme.colorScheme.outline.withOpacity(0.2)),
+        ),
+        child: InkWell(
+          onTap: () => Navigator.pushNamed(context, tile['route']!),
+          borderRadius: BorderRadius.circular(12),
+          onHover: (hovering) {
+            // Optionally, you can use setState if you want to change color on hover
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: Row(
+              children: [
+                Icon(
+                  _getIconForTitle(tile['title']!),
+                  color: theme.colorScheme.primary,
+                  size: 28,
                 ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
-                size: 16,
-              ),
-            ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Text(
+                    tile['title']!,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                  size: 16,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -139,6 +201,35 @@ class HomePage extends StatelessWidget {
       default:
         return Icons.circle;
     }
+  }
+
+  Widget _buildStatCard(String label, String value, ThemeData theme) {
+    return Expanded(
+      child: Card(
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                value,
+                style: theme.textTheme.displayMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _logout(BuildContext context, AuthStore authStore) async {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class CustomDialog extends StatelessWidget {
   final String title;
@@ -215,18 +216,19 @@ class InfoRow extends StatelessWidget {
   final String label;
   final String value;
   final bool isHighlighted;
+  final bool copyable;
 
   const InfoRow({
     super.key,
     required this.label,
     required this.value,
     this.isHighlighted = false,
+    this.copyable = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -244,14 +246,31 @@ class InfoRow extends StatelessWidget {
           const SizedBox(width: 16),
           Expanded(
             flex: 3,
-            child: Text(
-              value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: isHighlighted ? FontWeight.bold : null,
-                color: isHighlighted
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.onBackground,
-              ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    value,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: isHighlighted ? FontWeight.bold : null,
+                      color: isHighlighted
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onBackground,
+                    ),
+                  ),
+                ),
+                if (copyable)
+                  IconButton(
+                    icon: const Icon(Icons.copy, size: 18),
+                    tooltip: 'Copy',
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: value));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('$label copied!')),
+                      );
+                    },
+                  ),
+              ],
             ),
           ),
         ],

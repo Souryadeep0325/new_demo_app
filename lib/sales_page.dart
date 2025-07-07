@@ -32,6 +32,10 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
   bool isITCClaimable = true;
   double taxToGovt = 0;
 
+  TextEditingController productNameController = TextEditingController();
+  DateTime? dateFrom;
+  DateTime? dateTo;
+
   @override
   void initState() {
     super.initState();
@@ -67,7 +71,11 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
   Future<void> showTicketInfo(int ticketId) async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
     final uri = Uri.parse('https://api.abcoped.shop/api/ticket/check-bill/$ticketId');
-
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
     try {
       final response = await http.get(
         uri,
@@ -76,85 +84,54 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
           'Accept': 'application/json',
         },
       );
-
+      Navigator.pop(context); // Remove loading
       if (response.statusCode == 200) {
         final bill = json.decode(response.body);
-
         showDialog(
           context: context,
           builder: (_) => CustomDialog(
             title: 'Bill Details',
             maxWidth: 500,
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                InfoSection(
-                  title: 'Customer Information',
-                  rows: [
-                    InfoRow(
-                      label: 'Customer Name',
-                      value: bill['customerName'],
-                    ),
-                    InfoRow(
-                      label: 'Phone Number',
-                      value: bill['phoneNumber'],
-                    ),
-                    if (bill['gstId'] != null && bill['gstId'].toString().isNotEmpty)
-                      InfoRow(
-                        label: 'GST ID',
-                        value: bill['gstId'],
-                      ),
-                  ],
-                ),
-                InfoSection(
-                  title: 'Bill Information',
-                  rows: [
-                    InfoRow(
-                      label: 'Bill Number',
-                      value: bill['billNumber'],
-                      isHighlighted: true,
-                    ),
-                    InfoRow(
-                      label: 'Bill Date',
-                      value: bill['billDate'],
-                    ),
-                  ],
-                ),
-                InfoSection(
-                  title: 'Payment Details',
-                  rows: [
-                    InfoRow(
-                      label: 'Mode of Payment',
-                      value: bill['modeOfPayment'],
-                    ),
-                    if (bill['onlineTrxId'] != null && bill['onlineTrxId'].toString().isNotEmpty)
-                      InfoRow(
-                        label: 'Online Trx ID',
-                        value: bill['onlineTrxId'],
-                      ),
-                    InfoRow(
-                      label: 'Place of Sale',
-                      value: bill['placeOfSale'],
-                    ),
-                  ],
-                ),
-                InfoSection(
-                  title: 'Financial Details',
-                  hasDivider: false,
-                  rows: [
-                    InfoRow(
-                      label: 'Profit',
-                      value: '₹${bill['profit']}',
-                      isHighlighted: true,
-                    ),
-                    InfoRow(
-                      label: 'Client ID',
-                      value: bill['clientId'].toString(),
-                    ),
-                  ],
-                ),
-              ],
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  InfoSection(
+                    title: 'Customer Information',
+                    rows: [
+                      InfoRow(label: 'Customer Name', value: bill['customerName'] ?? 'N/A'),
+                      InfoRow(label: 'Phone Number', value: bill['phoneNumber'] ?? 'N/A'),
+                      if (bill['gstId'] != null && bill['gstId'].toString().isNotEmpty)
+                        InfoRow(label: 'GST ID', value: bill['gstId']),
+                    ],
+                  ),
+                  InfoSection(
+                    title: 'Bill Information',
+                    rows: [
+                      InfoRow(label: 'Bill Number', value: bill['billNumber'] ?? 'N/A', copyable: true, isHighlighted: true),
+                      InfoRow(label: 'Bill Date', value: bill['billDate'] ?? 'N/A'),
+                    ],
+                  ),
+                  InfoSection(
+                    title: 'Payment Details',
+                    rows: [
+                      InfoRow(label: 'Mode of Payment', value: bill['modeOfPayment'] ?? 'N/A'),
+                      if (bill['onlineTrxId'] != null && bill['onlineTrxId'].toString().isNotEmpty)
+                        InfoRow(label: 'Online Trx ID', value: bill['onlineTrxId']),
+                      InfoRow(label: 'Place of Sale', value: bill['placeOfSale'] ?? 'N/A'),
+                    ],
+                  ),
+                  InfoSection(
+                    title: 'Financial Details',
+                    hasDivider: false,
+                    rows: [
+                      InfoRow(label: 'Profit', value: bill['profit'] != null ? '\u20b9${bill['profit']}' : 'N/A', isHighlighted: true),
+                      InfoRow(label: 'Client ID', value: bill['clientId']?.toString() ?? 'N/A'),
+                    ],
+                  ),
+                ],
+              ),
             ),
             actions: [
               DialogButton(
@@ -164,16 +141,17 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
               DialogButton(
                 label: 'Download PDF',
                 isPrimary: true,
-                onPressed: () => {},
+                onPressed: () {/* TODO: Implement PDF download */},
                 icon: Icons.download,
               ),
             ],
           ),
         );
       } else {
-        showError('Failed to fetch ticket bill. Status: ${response.statusCode}');
+        showError('Failed to fetch ticket bill. Status: \\${response.statusCode}');
       }
     } catch (e) {
+      Navigator.pop(context); // Remove loading
       showError('Error fetching ticket bill: $e');
     }
   }
@@ -530,56 +508,143 @@ class _TicketListPageSoldState extends State<TicketListPageSold> {
     );
   }
 
+  Widget buildSearchSection() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: productNameController,
+              decoration: const InputDecoration(labelText: 'Product Name'),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: InkWell(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: dateFrom ?? DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+                if (picked != null) setState(() => dateFrom = picked);
+              },
+              child: InputDecorator(
+                decoration: const InputDecoration(labelText: 'Date From'),
+                child: Text(dateFrom != null ? dateFrom!.toIso8601String().split('T').first : 'Select date'),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: InkWell(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: dateTo ?? DateTime.now(),
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+                if (picked != null) setState(() => dateTo = picked);
+              },
+              child: InputDecorator(
+                decoration: const InputDecoration(labelText: 'Date To'),
+                child: Text(dateTo != null ? dateTo!.toIso8601String().split('T').first : 'Select date'),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          ElevatedButton(
+            onPressed: () {
+              // Implement filter logic here
+              setState(() {});
+            },
+            child: const Text('Search'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text("Sold List")),
+      appBar: AppBar(
+        title: const Text('Sales'),
+      ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-        itemCount: tickets.length,
-        itemBuilder: (context, index) {
-          final ticket = tickets[index];
-          final ticketId = ticket['ticketId'];
-
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ListTile(
-              title: Text("Item ID: ${ticket['itemId']}"),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          : Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text("Ticket ID: $ticketId"),
-                  Text("Purchase Type: ${ticket['productPurchaseType']}"),
-                  Text("Invoice Date: ${ticket['invoiceDate']}"),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.info_outline),
-                        label: const Text("Check Bill"),
-                        onPressed: () => showTicketInfo(ticketId),
+                  Container(
+                    alignment: Alignment.center,
+                    constraints: const BoxConstraints(maxWidth: 1100),
+                    child: Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: buildSearchSection(),
                       ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.info_outline),
-                        label: const Text("Check Ticket"),
-                        onPressed: () => showTicketDetails(ticketId),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: Center(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 1100),
+                          child: Card(
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: DataTable(
+                                columns: const [
+                                  DataColumn(label: Text('Ticket ID')),
+                                  DataColumn(label: Text('Product Name')),
+                                  DataColumn(label: Text('Status')),
+                                  DataColumn(label: Text('Date')),
+                                  DataColumn(label: Text('Cost')),
+                                  DataColumn(label: Text('Actions')),
+                                ],
+                                rows: tickets.map((ticket) {
+                                  return DataRow(
+                                    cells: [
+                                      DataCell(Text(ticket['ticketId']?.toString() ?? '')),
+                                      DataCell(Text(ticket['productName'] ?? '')),
+                                      DataCell(Text(ticket['status'] ?? '')),
+                                      DataCell(Text(ticket['date'] ?? '')),
+                                      DataCell(Text(ticket['cost']?.toString() ?? '')),
+                                      DataCell(Row(
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.visibility),
+                                            tooltip: 'View',
+                                            onPressed: () => showTicketInfo(ticket['ticketId']),
+                                          ),
+                                        ],
+                                      )),
+                                    ],
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.calculate),
-                        label: const Text("Check GST"),
-                        onPressed: () => showGstDetails(ticketId),
-                      ),
-                    ],
-
-                  )
+                    ),
+                  ),
                 ],
               ),
             ),
-          );
-        },
-      ),
     );
   }
 }

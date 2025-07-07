@@ -268,7 +268,11 @@ class _TicketListingPageState extends State<TicketListingPage> {
   Future<void> showTicketInfo(int ticketId) async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
     final uri = Uri.parse('https://api.abcoped.shop/api/ticket/check-ticket/$ticketId');
-
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
     try {
       final response = await http.get(
         uri,
@@ -277,69 +281,50 @@ class _TicketListingPageState extends State<TicketListingPage> {
           'Accept': 'application/json',
         },
       );
-
+      Navigator.pop(context); // Remove loading
       if (response.statusCode == 200) {
         final ticket = json.decode(response.body);
-        final totalCost = ticket['refurbishedCost'] != null &&
-            ticket['refurbishedCost'] != 0
-            ? ticket['acquisitionCost'] + ticket['refurbishedCost']
-            : ticket['acquisitionCost'];
-
+        final totalCost = (ticket['refurbishedCost'] != null && ticket['refurbishedCost'] != 0)
+            ? (ticket['acquisitionCost'] ?? 0) + (ticket['refurbishedCost'] ?? 0)
+            : (ticket['acquisitionCost'] ?? 0);
         showDialog(
           context: context,
           builder: (_) => CustomDialog(
             title: 'Ticket Details',
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                InfoSection(
-                  title: 'Product Information',
-                  rows: [
-                    InfoRow(
-                      label: 'Product Name',
-                      value: ticket['productName'] ?? 'N/A',
-                    ),
-                    InfoRow(
-                      label: 'RAM/ROM',
-                      value: ticket['ramRomSpecs'] ?? 'N/A',
-                    ),
-                    InfoRow(
-                      label: 'Color',
-                      value: ticket['colorSpecs'] ?? 'N/A',
-                    ),
-                  ],
-                ),
-                InfoSection(
-                  title: 'Cost Details',
-                  rows: [
-                    InfoRow(
-                      label: 'Acquisition Cost',
-                      value: '₹${ticket['acquisitionCost']}',
-                    ),
-                    InfoRow(
-                      label: 'Refurbished Cost',
-                      value: ticket['refurbishedCost'] != null ? '₹${ticket['refurbishedCost']}' : 'N/A',
-                    ),
-                    InfoRow(
-                      label: 'Total Cost',
-                      value: '₹$totalCost',
-                      isHighlighted: true,
-                    ),
-                  ],
-                ),
-                if (ticket['comment'] != null && ticket['comment'].toString().isNotEmpty)
+            maxWidth: 500,
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                   InfoSection(
-                    title: 'Additional Information',
-                    hasDivider: false,
+                    title: 'Product Information',
                     rows: [
-                      InfoRow(
-                        label: 'Comment',
-                        value: ticket['comment'],
-                      ),
+                      InfoRow(label: 'Ticket ID', value: ticket['ticketId']?.toString() ?? 'N/A', copyable: true),
+                      InfoRow(label: 'Product Name', value: ticket['productName'] ?? 'N/A'),
+                      InfoRow(label: 'RAM/ROM', value: ticket['ramRomSpecs'] ?? 'N/A'),
+                      InfoRow(label: 'Color', value: ticket['colorSpecs'] ?? 'N/A'),
+                      InfoRow(label: 'Status', value: ticket['status'] ?? 'N/A', isHighlighted: true),
                     ],
                   ),
-              ],
+                  InfoSection(
+                    title: 'Cost Details',
+                    rows: [
+                      InfoRow(label: 'Acquisition Cost', value: ticket['acquisitionCost'] != null ? '\u20b9${ticket['acquisitionCost']}' : 'N/A'),
+                      InfoRow(label: 'Refurbished Cost', value: ticket['refurbishedCost'] != null ? '\u20b9${ticket['refurbishedCost']}' : 'N/A'),
+                      InfoRow(label: 'Total Cost', value: '\u20b9$totalCost', isHighlighted: true),
+                    ],
+                  ),
+                  if (ticket['comment'] != null && ticket['comment'].toString().isNotEmpty)
+                    InfoSection(
+                      title: 'Additional Information',
+                      hasDivider: false,
+                      rows: [
+                        InfoRow(label: 'Comment', value: ticket['comment']),
+                      ],
+                    ),
+                ],
+              ),
             ),
             actions: [
               DialogButton(
@@ -350,9 +335,10 @@ class _TicketListingPageState extends State<TicketListingPage> {
           ),
         );
       } else {
-        showError('Failed to fetch ticket details. Status: ${response.statusCode}');
+        showError('Failed to fetch ticket details. Status: \\${response.statusCode}');
       }
     } catch (e) {
+      Navigator.pop(context); // Remove loading
       showError('Error fetching ticket details: $e');
     }
   }
@@ -494,42 +480,43 @@ class _TicketListingPageState extends State<TicketListingPage> {
 
   Widget buildTicketList() {
     return Expanded(
-      child: ListView.builder(
-        itemCount: displayedTickets.length,
-        itemBuilder: (context, index) {
-          final ticket = displayedTickets[index];
-          final ticketId = ticket['ticketId'];
-
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: ListTile(
-              title: Text("Item ID: ${ticket['itemId']}"),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Ticket ID: $ticketId"),
-                  Text("Product: ${ticket['productName']}"),
-                  Text("Purchase Type: ${ticket['productPurchaseType']}"),
-                  Text("Invoice Date: ${ticket['invoiceDate']}"),
-                ],
-              ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.info_outline),
-                    tooltip: "View Details",
-                    onPressed: () => showTicketInfo(ticketId),
-                  ),
-                  ElevatedButton(
-                    onPressed: () => confirmStatusChange(ticketId, ticket['ticketStatus']),
-                    child: const Text("Change Status"),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          columns: const [
+            DataColumn(label: Text('Ticket ID')),
+            DataColumn(label: Text('Product Name')),
+            DataColumn(label: Text('Status')),
+            DataColumn(label: Text('Date')),
+            DataColumn(label: Text('Cost')),
+            DataColumn(label: Text('Actions')),
+          ],
+          rows: displayedTickets.map((ticket) {
+            return DataRow(
+              cells: [
+                DataCell(Text(ticket['ticketId']?.toString() ?? '')),
+                DataCell(Text(ticket['productName'] ?? '')),
+                DataCell(Text(ticket['status'] ?? '')),
+                DataCell(Text(ticket['date'] ?? '')),
+                DataCell(Text(ticket['cost']?.toString() ?? '')),
+                DataCell(Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.visibility),
+                      tooltip: 'View',
+                      onPressed: () => showTicketInfo(ticket['ticketId']),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: 'Edit',
+                      onPressed: () => confirmStatusChange(ticket['ticketId'], ticket['status']),
+                    ),
+                  ],
+                )),
+              ],
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -540,26 +527,26 @@ class _TicketListingPageState extends State<TicketListingPage> {
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           IconButton(
+            icon: const Icon(Icons.arrow_back),
             onPressed: currentPage > 1
                 ? () {
               setState(() => currentPage--);
               updateDisplayedTickets();
             }
                 : null,
-            icon: const Icon(Icons.chevron_left),
           ),
           Text('Page $currentPage of $totalPages'),
           IconButton(
+            icon: const Icon(Icons.arrow_forward),
             onPressed: currentPage < totalPages
                 ? () {
               setState(() => currentPage++);
               updateDisplayedTickets();
             }
                 : null,
-            icon: const Icon(Icons.chevron_right),
           ),
         ],
       ),
@@ -568,19 +555,53 @@ class _TicketListingPageState extends State<TicketListingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final pageTitle = widget.title ?? '${widget.status} Ticket List';
-
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(pageTitle)),
+      appBar: AppBar(
+        title: Text(widget.title ?? 'Tickets'),
+      ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-        children: [
-          buildSearchSection(),
-          buildTicketList(),
-          if (allTickets.length > pageSize) buildPaginationControls(),
-        ],
-      ),
+          : Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    alignment: Alignment.center,
+                    constraints: const BoxConstraints(maxWidth: 1100),
+                    child: Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: buildSearchSection(),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: Center(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 1100),
+                          child: Card(
+                            elevation: 2,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: buildTicketList(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  buildPaginationControls(),
+                ],
+              ),
+            ),
     );
   }
 }
