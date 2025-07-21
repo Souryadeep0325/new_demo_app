@@ -1,10 +1,19 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class AuthStore extends ChangeNotifier {
   bool _isAuthenticated = false;
-
+  int qc1 = 0;
+  int qc2 = 0;
+  int listed = 0;
+  int sold = 0;
+  int factory = 0;
+  int scraped = 0;
+  int totalTickets = 0;
+  int completedTickets = 0;
+  int pendingTickets = 0;
   String _role = 'guest';
   String? _token;
   String? _username;
@@ -17,6 +26,7 @@ class AuthStore extends ChangeNotifier {
   Future<bool> login(String email, String password) async {
     final url = Uri.parse('https://api.abcoped.shop/api/auth/login');
 
+
     try {
       final response = await http.post(
         url,
@@ -25,14 +35,16 @@ class AuthStore extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
+
         final data = jsonDecode(response.body);
         final roles = List<String>.from(data['roles'] ?? []);
 
         if (roles.contains('ROLE_MANAGER')) {
           _token = data['token'];
-          _role = 'ROLE_MANAGER';
+          _role = roles[0];
           _isAuthenticated = true;
           _username = email.split('@')[0];
+          await fetchTicketStatusCounts();
           notifyListeners();
           return true;
         }
@@ -50,5 +62,33 @@ class AuthStore extends ChangeNotifier {
     _token = null;
     _username = null;
     notifyListeners();
+  }
+
+
+  Future<void> fetchTicketStatusCounts() async {
+    final url = Uri.parse('https://api.abcoped.shop/api/ticket/search-ticket/all-status/count');
+    final response = await http.get(
+      url,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+
+      qc1 = data['QC1'] ?? 0;
+      qc2 = data['QC2'] ?? 0;
+      listed = data['LISTED'] ?? 0;
+      sold = data['SOLD'] ?? 0;
+      factory = data['FACTORY'] ?? 0;
+      scraped = data['SCRAPED'] ?? 0;
+      totalTickets = qc1 + qc2 +listed + factory+ sold + scraped;
+      completedTickets = listed + qc1  +qc2+ factory;
+      pendingTickets = sold +scraped;
+    } else {
+      throw Exception('Failed to fetch ticket counts. Status: ${response.statusCode}');
+    }
   }
 }

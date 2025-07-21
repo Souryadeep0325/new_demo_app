@@ -70,8 +70,14 @@ class LoginPage extends StatelessWidget {
                       onPressed: () async {// final email = _emailController.text.trim();
                     final email = 'sfjdakljlaksfd@gmail.com';
                     // final password = _passwordController.text;
-                    final password = "abcdef123";
+                    final password = "123456";
                         await authStore.login(email, password);
+
+                        if(authStore.isAuthenticated == true)
+                          Navigator.pushReplacementNamed(context, '/home');
+                        else
+                          showLoginFailedDialog(context);
+
                       },
                       child: const Padding(
                         padding: EdgeInsets.symmetric(vertical: 12),
@@ -81,23 +87,23 @@ class LoginPage extends StatelessWidget {
 
                     const SizedBox(height: 16),
                     
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Forgot your password?',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onBackground.withOpacity(0.7),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            // TODO: Implement forgot password
-                          },
-                          child: const Text('Reset it here'),
-                        ),
-                      ],
-                    ),
+                    // Row(
+                    //   mainAxisAlignment: MainAxisAlignment.center,
+                    //   children: [
+                    //     Text(
+                    //       'Forgot your password?',
+                    //       style: theme.textTheme.bodyMedium?.copyWith(
+                    //         color: theme.colorScheme.onBackground.withOpacity(0.7),
+                    //       ),
+                    //     ),
+                    //     TextButton(
+                    //       onPressed: () {
+                    //         // TODO: Implement forgot password
+                    //       },
+                    //       child: const Text('Reset it here'),
+                    //     ),
+                    //   ],
+                    // ),
                   ],
                 ),
               ),
@@ -107,4 +113,19 @@ class LoginPage extends StatelessWidget {
       ),
     );
   }
+}
+void showLoginFailedDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: const Text('Login Failed'),
+      content: const Text('Invalid username or password. Please try again.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Close'),
+        ),
+      ],
+    ),
+  );
 }

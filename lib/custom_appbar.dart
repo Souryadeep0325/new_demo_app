@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:news_app/user_profile_panel.dart';
 import 'package:provider/provider.dart';
-
+import 'package:flutter/material.dart';
 import 'auth.dart';
-
+import 'package:http/http.dart' as http;
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String appBarTitle;
   final List<Widget>? actions;
@@ -56,20 +57,20 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 icon: const Icon(Icons.logout, color: Colors.white),
                 tooltip: 'Logout',
                 onPressed: () {
-                  authStore.logout();
+                  _logout(context,authStore);
                   Navigator.pushReplacementNamed(context, '/login');
                 },
               ),
               IconButton(
-                icon: const Icon(Icons.notifications_none, color: Colors.white),
-                tooltip: 'Notifications',
-                onPressed: () {
-                  // TODO: Implement notifications
-                },
-              ),
-              IconButton(
                 icon: const Icon(Icons.menu, color: Colors.white),
-                onPressed: () => _showAlertDialog(context),
+                onPressed: () {
+                  final authStore = Provider.of<AuthStore>(context, listen: false);
+
+                  showDialog(
+                    context: context,
+                    builder: (_) => UserProfilePanel(token: authStore.token),
+                  );
+                },
               ),
             ],
           ),
@@ -78,27 +79,34 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  void _showAlertDialog(BuildContext context) {
-    final theme = Theme.of(context);
-    
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('Menu Options', style: theme.textTheme.titleLarge),
-          content: Text(
-            'This is the menu option, add your content here!',
-            style: theme.textTheme.bodyLarge,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Close', style: TextStyle(color: theme.colorScheme.primary)),
-            ),
-          ],
-        );
+}
+
+
+Future<void> _logout(BuildContext context, AuthStore authStore) async {
+  const logoutUrl = 'https://api.abcoped.shop/api/auth/logout';
+
+  try {
+    final response = await http.post(
+      Uri.parse(logoutUrl),
+      headers: {
+        'Authorization': 'Bearer ${authStore.token}',
+        'Content-Type': 'application/json',
       },
     );
+
+    if (response.statusCode == 200) {
+      authStore.logout(); // Clear user state
+      Navigator.pushReplacementNamed(context, '/login');
+    } else {
+      _showError(context, 'Logout failed with status ${response.statusCode}');
+    }
+  } catch (e) {
+    _showError(context, 'Logout error: $e');
   }
+}
+
+void _showError(BuildContext context, String message) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(message)),
+  );
 }

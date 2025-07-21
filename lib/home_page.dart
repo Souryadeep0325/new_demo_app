@@ -1,10 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:news_app/centred_view.dart';
 import 'auth.dart';
 import 'package:provider/provider.dart';
 import 'custom_appbar.dart';
-import 'gst_calculation_page.dart';
-import 'package:http/http.dart' as http;
 
 class HomePage extends StatelessWidget {
   final VoidCallback? toggleTheme;
@@ -24,6 +24,7 @@ class HomePage extends StatelessWidget {
         {'title': 'Factory', 'route': '/factory'},
         {'title': 'QC2', 'route': '/qc2'},
         {'title': 'Listing', 'route': '/listing'},
+        {'title': 'Inventory', 'route': '/inventory'},
         {'title': 'Sales', 'route': '/sales'},
         {'title': 'Scrap', 'route': '/scrap'},
         {'title': 'GST Calculation', 'route': '/gst_calculation'},
@@ -85,29 +86,35 @@ class HomePage extends StatelessWidget {
                     ],
                   ),
                   const Spacer(),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      authStore.logout();
-                      Navigator.pushReplacementNamed(context, '/login');
-                    },
-                    icon: const Icon(Icons.logout),
-                    label: const Text('Logout'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.colorScheme.error,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
+                  // ElevatedButton.icon(
+                  //   onPressed: () {
+                  //     _logout(context, authStore);
+                  //     Navigator.pushReplacementNamed(context, '/login');
+                  //   },
+                  //   icon: const Icon(Icons.logout),
+                  //   label: const Text('Logout'),
+                  //   style: ElevatedButton.styleFrom(
+                  //     backgroundColor: theme.colorScheme.error,
+                  //     foregroundColor: Colors.white,
+                  //   ),
+                  // ),
                 ],
               ),
               const SizedBox(height: 32),
               // Dashboard Stats (optional, placeholder)
               Row(
                 children: [
-                  _buildStatCard('Total Tickets', '123', theme),
+                  _buildStatCard('Total Tickets', "${authStore.totalTickets}", theme),
                   const SizedBox(width: 16),
-                  _buildStatCard('Pending', '12', theme),
+                  _buildStatCard('Pending', "${authStore.pendingTickets}", theme),
                   const SizedBox(width: 16),
-                  _buildStatCard('Completed', '111', theme),
+                  _buildStatCard('Completed', "${authStore.completedTickets}", theme),
+                  const SizedBox(width: 16),
+                  _buildStatCard('QC1', "${authStore.qc1}", theme),
+                  const SizedBox(width: 16),
+                  _buildStatCard('Factory', "${authStore.factory}", theme),
+                  const SizedBox(width: 16),
+                  _buildStatCard('listed', "${authStore.listed}", theme),
                 ],
               ),
               const SizedBox(height: 32),
@@ -132,6 +139,8 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
+
+
 
   Widget _buildTile(BuildContext context, Map<String, String> tile) {
     final theme = Theme.of(context);
@@ -197,6 +206,8 @@ class HomePage extends StatelessWidget {
       case 'gst calculation':
         return Icons.calculate;
       case 'all products':
+        return Icons.inventory_sharp;
+      case 'inventory':
         return Icons.inventory;
       default:
         return Icons.circle;
@@ -229,35 +240,6 @@ class HomePage extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-
-  Future<void> _logout(BuildContext context, AuthStore authStore) async {
-    const logoutUrl = 'https://api.abcoped.shop/api/auth/logout';
-
-    try {
-      final response = await http.post(
-        Uri.parse(logoutUrl),
-        headers: {
-          'Authorization': 'Bearer ${authStore.token}',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        authStore.logout(); // Clear user state
-        Navigator.pushReplacementNamed(context, '/login');
-      } else {
-        _showError(context, 'Logout failed with status ${response.statusCode}');
-      }
-    } catch (e) {
-      _showError(context, 'Logout error: $e');
-    }
-  }
-
-  void _showError(BuildContext context, String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
     );
   }
 }

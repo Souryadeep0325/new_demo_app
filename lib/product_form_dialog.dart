@@ -6,11 +6,13 @@ import 'auth.dart';
 
 class ProductFormDialog extends StatefulWidget {
   final int itemId;
+  final String brand;
   final String productName;
 
   const ProductFormDialog({
     super.key,
     required this.itemId,
+    required this.brand,
     required this.productName,
   });
 
@@ -23,12 +25,12 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
   bool isSubmitting = false;
 
   // Controllers
-  final invoiceNumberController = TextEditingController();
-  final phoneNumberController = TextEditingController();
-  final customerNameController = TextEditingController();
-  final gstNumberController = TextEditingController();
-  final gstIdController = TextEditingController();
-  final customerAadharIdController = TextEditingController();
+  // final invoiceNumberController = TextEditingController();
+  // final phoneNumberController = TextEditingController();
+  // final customerNameController = TextEditingController();
+  // final gstNumberController = TextEditingController();
+  // final gstIdController = TextEditingController();
+  // final customerAadharIdController = TextEditingController();
   final itemSerialNoController = TextEditingController();
   final imeiNoController = TextEditingController();
   final batteryHealthController = TextEditingController();
@@ -88,16 +90,17 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
     final authStore = Provider.of<AuthStore>(context, listen: false);
 
     final Map<String, dynamic> body = {
+      "brand":widget.brand,
       "itemId": widget.itemId,
-      "invoiceNumber": invoiceNumberController.text,
-      "invoiceDate": DateTime.now().toIso8601String().split("T").first,
-      "phoneNumber": phoneNumberController.text,
-      "customerName": customerNameController.text,
-      "gstNumber": gstNumberController.text,
-      "gstId": gstIdController.text,
-      "productPurchaseType": purchaseType,
-      "modeOfPayment": modeOfPayment,
-      "customerAadharId": int.tryParse(customerAadharIdController.text) ?? 0,
+      // "invoiceNumber": invoiceNumberController.text,
+      // "invoiceDate": DateTime.now().toIso8601String().split("T").first,
+      // "phoneNumber": phoneNumberController.text,
+      // "customerName": customerNameController.text,
+      // "gstNumber": gstNumberController.text,
+      // "gstId": gstIdController.text,
+      //"productPurchaseType": purchaseType,
+     // "modeOfPayment": modeOfPayment,
+      // "customerAadharId": int.tryParse(customerAadharIdController.text) ?? 0,
       "itemSerialNo": itemSerialNoController.text,
       "imeiNo": imeiNoController.text,
       "batteryHealth": batteryHealthController.text,
@@ -111,12 +114,15 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
       "ColorSpecs": colorSpecsController.text,
       "comments": commentsController.text,
       "productName": widget.productName,
+      "cartType": "BUY",
     };
 
     setState(() => isSubmitting = true);
 
     final response = await http.post(
-      Uri.parse('https://api.abcoped.shop/api/ticket/create-ticket'),
+      // Uri.parse('https://api.abcoped.shop/api/ticket/create-ticket'),
+      Uri.parse('https://api.abcoped.shop/api/ticket/cart/items/buy/add'),
+
       headers: {
         'Authorization': 'Bearer ${authStore.token}',
         'Content-Type': 'application/json',
@@ -129,7 +135,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
     if (response.statusCode == 200 || response.statusCode == 201) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ticket created successfully!')),
+        const SnackBar(content: Text('Item Added to cart!')),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -163,12 +169,12 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                 Text('Product: ${widget.productName}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 24),
 
-                const Text('Customer Information', style: TextStyle(fontWeight: FontWeight.bold)),
-                TextFormField(controller: customerNameController, decoration: const InputDecoration(labelText: 'Customer Name'), validator: _required),
-                TextFormField(controller: phoneNumberController, decoration: const InputDecoration(labelText: 'Phone Number'), validator: _required),
-                TextFormField(controller: customerAadharIdController, decoration: const InputDecoration(labelText: 'Aadhar ID'), keyboardType: TextInputType.number, validator: _required),
-                TextFormField(controller: gstNumberController, decoration: const InputDecoration(labelText: 'GST Number')),
-                TextFormField(controller: gstIdController, decoration: const InputDecoration(labelText: 'GST ID')),
+              //  const Text('Customer Information', style: TextStyle(fontWeight: FontWeight.bold)),
+              //  TextFormField(controller: customerNameController, decoration: const InputDecoration(labelText: 'Customer Name'), validator: _required),
+              //  TextFormField(controller: phoneNumberController, decoration: const InputDecoration(labelText: 'Phone Number'), validator: _required),
+               // TextFormField(controller: customerAadharIdController, decoration: const InputDecoration(labelText: 'Aadhar ID'), keyboardType: TextInputType.number, validator: _required),
+               // TextFormField(controller: gstNumberController, decoration: const InputDecoration(labelText: 'GST Number')),
+              //  TextFormField(controller: gstIdController, decoration: const InputDecoration(labelText: 'GST ID')),
 
                 const SizedBox(height: 24),
                 const Text('Product Details', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -179,9 +185,9 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
 
                 const SizedBox(height: 24),
                 const Text('Purchase Info', style: TextStyle(fontWeight: FontWeight.bold)),
-                TextFormField(controller: invoiceNumberController, decoration: const InputDecoration(labelText: 'Invoice Number'), validator: _required),
-                DropdownButtonFormField(value: purchaseType, decoration: const InputDecoration(labelText: 'Purchase Type'), items: _dropdownItems(paymentOptions), onChanged: (val) => setState(() => purchaseType = val!), validator: _required),
-                DropdownButtonFormField(value: modeOfPayment, decoration: const InputDecoration(labelText: 'Mode of Payment'), items: _dropdownItems(paymentOptions), onChanged: (val) => setState(() => modeOfPayment = val!), validator: _required),
+             //   TextFormField(controller: invoiceNumberController, decoration: const InputDecoration(labelText: 'Invoice Number'), validator: _required),
+             //   DropdownButtonFormField(value: purchaseType, decoration: const InputDecoration(labelText: 'Purchase Type'), items: _dropdownItems(paymentOptions), onChanged: (val) => setState(() => purchaseType = val!), validator: _required),
+             //   DropdownButtonFormField(value: modeOfPayment, decoration: const InputDecoration(labelText: 'Mode of Payment'), items: _dropdownItems(paymentOptions), onChanged: (val) => setState(() => modeOfPayment = val!), validator: _required),
                 TextFormField(controller: acquisitionCostController, decoration: const InputDecoration(labelText: 'Acquisition Cost'), keyboardType: TextInputType.number, validator: _required),
 
                 const SizedBox(height: 24),

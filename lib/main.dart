@@ -8,8 +8,6 @@ import 'sales_page.dart';
 import 'purchase_page.dart';
 import 'listing_page.dart';
 import 'gst_calculation_page.dart';
-import 'ticket_list_page.dart';
-import 'scrap.dart';
 import 'ticket_listing_page.dart';
 
 void main() {
@@ -246,14 +244,18 @@ class _MyAppState extends State<MyApp> {
               case '/home':
                 return MaterialPageRoute(builder: (_) => const HomePage());
               case '/sales':
-                return MaterialPageRoute(builder: (_) => const TicketListPageSold());
+                return MaterialPageRoute(builder: (_) => const TicketListingPage(status: 'SOLD', title: 'Sold Items'),);
               case '/purchases':
                 return MaterialPageRoute(builder: (_) => const PurchasesPage());
               case '/listing':
-                return MaterialPageRoute(builder: (_) => const ProductListing(status: 'LISTED', title: 'Listed Products'));
+                return MaterialPageRoute(builder: (_) => const TicketListingPage(status: 'LISTED', title: 'Listed Products'));
               case '/qc1':
                 return MaterialPageRoute(
                   builder: (_) => const TicketListingPage(status: 'QC1', title: 'QC1 Tickets'),
+                );
+              case '/factory':
+                return MaterialPageRoute(
+                  builder: (_) => const TicketListingPage(status: 'Factory', title: 'Factory Tickets'),
                 );
               case '/qc2':
                 return MaterialPageRoute(
@@ -261,11 +263,15 @@ class _MyAppState extends State<MyApp> {
                 );
               case '/scrap':
                 return MaterialPageRoute(
-                  builder: (_) => const TicketListingPage(status: 'SCRAP', title: 'Scrap Tickets'),
+                  builder: (_) => const TicketListingPage(status: 'Scraped', title: 'Scrap Tickets'),
                 );
               case '/all_products':
                 return MaterialPageRoute(
-                  builder: (_) => const ProductListing(status: '', title: 'All Products'),
+                  builder: (_) => const TicketListingPage(status: '', title: 'All products Tickets'),
+                );
+              case '/inventory':
+                return MaterialPageRoute(
+                  builder: (_) => const TicketListingPage(status: 'Inventory', title: 'Inventory'),
                 );
               case '/gst_calculation':
                 return MaterialPageRoute(

@@ -637,7 +637,7 @@ class _ProductListingState extends State<ProductListing> {
                     tooltip: "Change Status",
                     onPressed: () => confirmStatusChange(ticket['ticketId'], ticket['status']),
                   ),
-                  if (ticket['status'] == 'LISTED')
+                  if (ticket['ticketStatus'] == 'LISTED')
                     IconButton(
                       icon: const Icon(Icons.receipt_long),
                       tooltip: 'Create Bill',
