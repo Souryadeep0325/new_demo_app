@@ -101,7 +101,7 @@ class _ProductListingState extends State<ProductListing> {
   }
 
   void confirmStatusChange(int ticketId, String currentStatus) {
-    final List<String> statusOptions = ['QC1', 'QC2', 'LISTED', 'FACTORY']
+    final List<String> statusOptions = ['QC', 'LISTED', 'FACTORY']
         .where((status) => status != currentStatus)
         .toList();
 

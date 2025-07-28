@@ -19,7 +19,7 @@ class PurchasesPage extends StatefulWidget {
 
 class _PurchasesPageState extends State<PurchasesPage> {
   final TextEditingController _productNameController = TextEditingController();
-
+  int cartCount = 0;
   List<String> productNames = [];
   List<int> productMasterId = [];
   List<String> brandNames = [];
@@ -54,9 +54,11 @@ class _PurchasesPageState extends State<PurchasesPage> {
   @override
   void initState() {
     super.initState();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       authStore = Provider.of<AuthStore>(context, listen: false);
     });
+    fetchCartCount();
   }
 
   Future<void> fetchProducts({required String brand, required String productName, int page = 0}) async {
@@ -109,6 +111,25 @@ class _PurchasesPageState extends State<PurchasesPage> {
         actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
       ),
     );
+  }
+
+  Future<void> fetchCartCount() async {
+    final authStore = Provider.of<AuthStore>(context, listen: false);
+    try {
+      final uri = Uri.parse('https://api.abcoped.shop/api/ticket/cart/items?cartType=BUY');
+      final response = await http.get(uri, headers: {
+        'Authorization': 'Bearer ${authStore.token}',
+      });
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          cartCount = data['totalElements'] ?? 0;
+        });
+      }
+    } catch (e) {
+      // Handle errors silently or show snackbar/log
+    }
   }
 
   Widget _buildBrandTiles() {
@@ -214,16 +235,53 @@ class _PurchasesPageState extends State<PurchasesPage> {
         appBar: AppBar(
           title: const Text('Purchases'),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.shopping_cart),
-              tooltip: 'Go to Cart',
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const BuyCartPage()),
-                );
-              },
+            // IconButton(
+            //   icon: const Icon(Icons.shopping_cart),
+            //   tooltip: 'Go to Cart',
+            //   onPressed: () {
+            //     Navigator.push(
+            //       context,
+            //       MaterialPageRoute(builder: (_) => const BuyCartPage()),
+            //     );
+            //   },
+            // ),
+            Stack(
+              alignment: Alignment.topRight,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.shopping_cart),
+                  tooltip: 'Go to Cart',
+                  onPressed: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const BuyCartPage()),
+                    );
+                    fetchCartCount(); // Refresh count after returning
+                  },
+                ),
+                if (cartCount > 0)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '$cartCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
+
           ],
         ),
         body: Column(

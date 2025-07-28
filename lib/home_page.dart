@@ -20,14 +20,13 @@ class HomePage extends StatelessWidget {
     if (authStore.role == 'ROLE_MANAGER') {
       tileList = [
         {'title': 'Purchases', 'route': '/purchases'},
-        {'title': 'QC1', 'route': '/qc1'},
+        {'title': 'QC', 'route': '/qc'},
         {'title': 'Factory', 'route': '/factory'},
-        {'title': 'QC2', 'route': '/qc2'},
         {'title': 'Listing', 'route': '/listing'},
         {'title': 'Inventory', 'route': '/inventory'},
         {'title': 'Sales', 'route': '/sales'},
         {'title': 'Scrap', 'route': '/scrap'},
-        {'title': 'GST Calculation', 'route': '/gst_calculation'},
+        // {'title': 'GST Calculation', 'route': '/gst_calculation'},
         {'title': 'All Products', 'route': '/all_products'},
       ];
     } else if (authStore.role == 'user') {
@@ -110,7 +109,7 @@ class HomePage extends StatelessWidget {
                   const SizedBox(width: 16),
                   _buildStatCard('Completed', "${authStore.completedTickets}", theme),
                   const SizedBox(width: 16),
-                  _buildStatCard('QC1', "${authStore.qc1}", theme),
+                  _buildStatCard('QC', "${authStore.qc}", theme),
                   const SizedBox(width: 16),
                   _buildStatCard('Factory', "${authStore.factory}", theme),
                   const SizedBox(width: 16),

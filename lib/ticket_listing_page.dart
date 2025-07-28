@@ -2,9 +2,11 @@ import 'dart:convert';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:news_app/sell_cart_page.dart';
 import 'package:provider/provider.dart';
 import 'auth.dart';
 import 'widgets/custom_dialog.dart';
+import 'dart:typed_data';
 import 'dart:html' as html;
 import 'package:pdf/widgets.dart' as pw;
 final List<String> allBrands = [
@@ -42,7 +44,7 @@ class _TicketListingPageState extends State<TicketListingPage> {
   final productNameController = TextEditingController();
   final costMinController = TextEditingController();
   final costMaxController = TextEditingController();
-
+  int cartCount = 0;
   DateTime? tempInvoiceDateFrom;
   DateTime? tempInvoiceDateTo;
   DateTime? invoiceDateFrom;
@@ -52,6 +54,9 @@ class _TicketListingPageState extends State<TicketListingPage> {
   void initState() {
     super.initState();
     fetchTickets();
+    if(widget.status == 'LISTED') {
+      fetchCartCount();
+    }
   }
 
   Future<void> fetchTickets() async {
@@ -103,166 +108,82 @@ class _TicketListingPageState extends State<TicketListingPage> {
   }
   Future<void> showSoldTicketInfo(int ticketId) async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
-    final uri = Uri.parse('https://api.abcoped.shop/api/ticket/check-bill/$ticketId');
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
+    final uri = Uri.parse('https://api.abcoped.shop/api/ticket/check-ticket/$ticketId');
+
+    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+
     try {
-      final response = await http.get(
-        uri,
-        headers: {
-          'Authorization': 'Bearer ${authStore.token}',
-          'Accept': 'application/json',
-        },
-      );
-      Navigator.pop(context); // Remove loading
+      final response = await http.get(uri, headers: {
+        'Authorization': 'Bearer ${authStore.token}',
+        'Accept': 'application/json',
+      });
+
+      Navigator.pop(context);
+
       if (response.statusCode == 200) {
-        final bill = json.decode(response.body);
+        final ticket = json.decode(response.body);
+        final invoice = ticket['invoiceDto'];
+
+        final totalCost = (ticket['refurbishedCost'] ?? 0) + (ticket['acquisitionCost'] ?? 0);
+
         showDialog(
           context: context,
           builder: (_) => CustomDialog(
-            title: 'Bill Details',
-            maxWidth: 500,
+            title: 'Ticket & Invoice Details',
+            maxWidth: 600,
             content: SingleChildScrollView(
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  InfoSection(
-                    title: 'Customer Information',
-                    rows: [
-                      InfoRow(label: 'Customer Name', value: bill['customerName'] ?? 'N/A'),
-                      InfoRow(label: 'Phone Number', value: bill['phoneNumber'] ?? 'N/A'),
-                      if (bill['gstId'] != null && bill['gstId'].toString().isNotEmpty)
-                        InfoRow(label: 'GST ID', value: bill['gstId']),
-                    ],
-                  ),
-                  InfoSection(
-                    title: 'Bill Information',
-                    rows: [
-                      InfoRow(label: 'Bill Number', value: bill['billNumber'] ?? 'N/A', copyable: true, isHighlighted: true),
-                      InfoRow(label: 'Bill Date', value: bill['billDate'] ?? 'N/A'),
-                    ],
-                  ),
-                  InfoSection(
-                    title: 'Payment Details',
-                    rows: [
-                      InfoRow(label: 'Mode of Payment', value: bill['modeOfPayment'] ?? 'N/A'),
-                      if (bill['onlineTrxId'] != null && bill['onlineTrxId'].toString().isNotEmpty)
-                        InfoRow(label: 'Online Trx ID', value: bill['onlineTrxId']),
-                      InfoRow(label: 'Place of Sale', value: bill['placeOfSale'] ?? 'N/A'),
-                    ],
-                  ),
-                  InfoSection(
-                    title: 'Financial Details',
-                    hasDivider: false,
-                    rows: [
-                      InfoRow(label: 'Profit', value: bill['profit'] != null ? '\u20b9${bill['profit']}' : 'N/A', isHighlighted: true),
-                      InfoRow(label: 'Client ID', value: bill['clientId']?.toString() ?? 'N/A'),
-                    ],
-                  ),
+                  Text('Ticket ID: ${ticket['ticketId']}'),
+                  Text('Product: ${ticket['productName']}'),
+                  Text('Status: ${ticket['ticketStatus']}'),
+                  Text('Brand: ${ticket['brand']}'),
+                  Text('Acquisition Cost: ₹${ticket['acquisitionCost']}'),
+                  Text('Refurbished Cost: ₹${ticket['refurbishedCost'] ?? 0}'),
+                  Text('Total Cost: ₹$totalCost'),
+                  const Divider(),
+                  if (invoice != null) ...[
+                    Text('Invoice Number: ${invoice['invoiceNumber']}'),
+                    Text('Invoice Date: ${invoice['invoiceDate']}'),
+                    Text('Customer Name: ${invoice['customerName']}'),
+                    Text('Phone: ${invoice['phoneNumber']}'),
+                    Text('GST ID: ${invoice['gstId']}'),
+                    Text('Product Purchase Type: ${invoice['productPurchaseType']}'),
+                    const SizedBox(height: 10),
+                    Text('Payments:', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ...List<Widget>.from(invoice['payments'].map<Widget>((payment) {
+                      return Text(
+                        '• ${payment['modeOfPayment']} - ₹${payment['amount']}'
+                            '${payment['transactionId'] != null ? ' (Txn: ${payment['transactionId']})' : ''}'
+                            '${payment['paidAt'] != null ? ' on ${payment['paidAt']}' : ''}',
+                      );
+                    })),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => generateInvoicePdf(ticket,'Invoice'),
+                      child: const Text('Download Invoice PDF'),
+                    ),
+                  ] else ...[
+                    const Text('No invoice data found.'),
+                  ],
                 ],
               ),
             ),
-            actions: [
-              DialogButton(
-                label: 'Close',
-                onPressed: () => Navigator.pop(context),
-              ),
-              DialogButton(
-                label: 'Download PDF',
-                isPrimary: true,
-                onPressed: () {downloadBillPdfFromData(bill);},
-                icon: Icons.download,
-              ),
-            ],
+            actions: [DialogButton(label: 'Close', onPressed: () => Navigator.pop(context))],
           ),
         );
       } else {
-        showError('Failed to fetch ticket bill. Status: \\${response.statusCode}');
+        showError('Failed to fetch ticket details. Status: ${response.statusCode}');
       }
     } catch (e) {
-      Navigator.pop(context); // Remove loading
-      showError('Error fetching ticket bill: $e');
+      Navigator.pop(context);
+      showError('Error fetching ticket details: $e');
     }
   }
-  // Future<void> downloadBillPdf(int ticketId) async {
-  //   final authStore = Provider.of<AuthStore>(context, listen: false);
-  //   final uri = Uri.parse('https://api.abcoped.shop/api/ticket/download-bill/$ticketId');
-  //
-  //   try {
-  //     final response = await http.get(uri, headers: {
-  //       'Authorization': 'Bearer ${authStore.token}',
-  //       'Accept': 'application/pdf',
-  //     });
-  //
-  //     if (response.statusCode == 200) {
-  //       final blob = html.Blob([response.bodyBytes], 'application/pdf');
-  //       final url = html.Url.createObjectUrlFromBlob(blob);
-  //       final anchor = html.AnchorElement(href: url)
-  //         ..setAttribute('download', 'Bill-$ticketId.pdf')
-  //         ..click();
-  //       html.Url.revokeObjectUrl(url);
-  //     } else {
-  //       _showAlertDialog('Failed to download PDF. Status: ${response.statusCode}');
-  //     }
-  //   } catch (e) {
-  //     _showAlertDialog('Error downloading PDF: $e');
-  //   }
-  // }
-  Future<void> downloadBillPdfFromData(Map<String, dynamic> billData) async {
-    final pdf = pw.Document();
 
-    pdf.addPage(
-      pw.Page(
-        build: (pw.Context context) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text('Bill Details', style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-            pw.SizedBox(height: 12),
-            pw.Text('Customer Name: ${billData['customerName'] ?? 'N/A'}'),
-            pw.Text('Phone Number: ${billData['phoneNumber'] ?? 'N/A'}'),
-            if (billData['gstId'] != null && billData['gstId'].toString().isNotEmpty)
-              pw.Text('GST ID: ${billData['gstId']}'),
-            pw.SizedBox(height: 12),
-            pw.Text('Bill Number: ${billData['billNumber'] ?? 'N/A'}'),
-            pw.Text('Bill Date: ${billData['billDate'] ?? 'N/A'}'),
-            pw.SizedBox(height: 12),
-            pw.Text('Mode of Payment: ${billData['modeOfPayment'] ?? 'N/A'}'),
-            if (billData['onlineTrxId'] != null && billData['onlineTrxId'].toString().isNotEmpty)
-              pw.Text('Online Trx ID: ${billData['onlineTrxId']}'),
-            pw.Text('Place of Sale: ${billData['placeOfSale'] ?? 'N/A'}'),
-            pw.SizedBox(height: 12),
-            pw.Text('Profit: ₹${billData['profit'] ?? 'N/A'}'),
-            pw.Text('Client ID: ${billData['clientId'] ?? 'N/A'}'),
-          ],
-        ),
-      ),
-    );
 
-    final bytes = await pdf.save();
-
-    final blob = html.Blob([bytes], 'application/pdf');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement(href: url)
-      ..setAttribute('download', 'Bill.pdf')
-      ..click();
-    html.Url.revokeObjectUrl(url);
-  }
-  void _showAlertDialog(String message) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Error'),
-        content: Text(message),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
-      ),
-    );
-  }
-
-  Future<void> showTicketInfo(int ticketId) async {
+  Future<void> showSoldTicketBill(int ticketId) async {
     final authStore = Provider.of<AuthStore>(context, listen: false);
     final uri = Uri.parse('https://api.abcoped.shop/api/ticket/check-ticket/$ticketId');
 
@@ -275,26 +196,92 @@ class _TicketListingPageState extends State<TicketListingPage> {
       });
 
       Navigator.pop(context);
+
       if (response.statusCode == 200) {
         final ticket = json.decode(response.body);
+        final invoice = ticket['invoiceDto'];
+        final bill = ticket['billResponseDto'];
         final totalCost = (ticket['refurbishedCost'] ?? 0) + (ticket['acquisitionCost'] ?? 0);
+
         showDialog(
           context: context,
           builder: (_) => CustomDialog(
-            title: 'Ticket Details',
-            maxWidth: 500,
-            content: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Ticket ID: ${ticket['ticketId'] ?? 'N/A'}'),
-                Text('Brand: ${ticket['brand'] ?? 'NA'}'),
-                Text('Product Name: ${ticket['productName'] ?? 'N/A'}'),
-                Text('Status: ${ticket['ticketStatus'] ?? 'N/A'}'),
-                Text('Acquisition Cost: ₹${ticket['acquisitionCost']}'),
-                Text('Refurbished Cost: ₹${ticket['refurbishedCost'] ?? 'N/A'}'),
-                Text('Invoice Date: ₹${ticket['invoiceDate'] ?? 'N/A'}'),
-                Text('Total Cost: ₹$totalCost'),
-              ],
+            title: 'Ticket & Billing Details',
+            maxWidth: 600,
+            content: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Ticket ID: ${ticket['ticketId']}'),
+                  Text('Product: ${ticket['productName']}'),
+                  Text('Status: ${ticket['ticketStatus']}'),
+                  Text('Brand: ${ticket['brand']}'),
+                  Text('Acquisition Cost: ₹${ticket['acquisitionCost']}'),
+                  Text('Refurbished Cost: ₹${ticket['refurbishedCost'] ?? 0}'),
+                  Text('Total Cost: ₹$totalCost'),
+                  const Divider(),
+
+                  if (bill != null) ...[
+                    Text('Bill Number: ${bill['billNumber']}'),
+                    Text('Bill Date: ${bill['billDate']}'),
+                    Text('Customer Name: ${bill['customerName']}'),
+                    Text('Phone: ${bill['phoneNumber']}'),
+                    Text('GST ID: ${bill['gstId'] ?? 'N/A'}'),
+                    Text('Place of Sale: ${bill['placeOfSale']}'),
+                    Text('Profit: ₹${bill['profit'] ?? 'N/A'}'),
+                    const SizedBox(height: 10),
+                    Text('Payments:', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ...List<Widget>.from(bill['payments'].map<Widget>((pmt) {
+                      return Text(
+                        '• ${pmt['modeOfPayment']} - ₹${pmt['amount']}'
+                            '${pmt['transactionId'] != null ? ' (Txn: ${pmt['transactionId']})' : ''}'
+                            '${pmt['paidAt'] != null ? ' on ${pmt['paidAt']}' : ''}',
+                      );
+                    })),
+                    const Divider(),
+                    Text('Products:', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ...List<Widget>.from(bill['products'].map<Widget>((prod) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('• ${prod['productName']} (${prod['brand']})'),
+                          Text('  RAM/ROM: ${prod['ramRomSpecs'] ?? '-'}'),
+                          Text('  IMEI: ${prod['imeiNo']}  | Serial: ${prod['serialNo']}'),
+                          Text('  Warranty: ${prod['warranty']}'),
+                        ],
+                      );
+                    })),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => generateInvoicePdf(ticket,'Bill'),
+                      child: const Text('Download Bill PDF'),
+                    ),
+                  ] else if (invoice != null) ...[
+                    Text('Invoice Number: ${invoice['invoiceNumber']}'),
+                    Text('Invoice Date: ${invoice['invoiceDate']}'),
+                    Text('Customer Name: ${invoice['customerName']}'),
+                    Text('Phone: ${invoice['phoneNumber']}'),
+                    Text('GST ID: ${invoice['gstId']}'),
+                    Text('Product Purchase Type: ${invoice['productPurchaseType']}'),
+                    const SizedBox(height: 10),
+                    Text('Payments:', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ...List<Widget>.from(invoice['payments'].map<Widget>((pmt) {
+                      return Text(
+                        '• ${pmt['modeOfPayment']} - ₹${pmt['amount']}'
+                            '${pmt['transactionId'] != null ? ' (Txn: ${pmt['transactionId']})' : ''}'
+                            '${pmt['paidAt'] != null ? ' on ${pmt['paidAt']}' : ''}',
+                      );
+                    })),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => generateInvoicePdf(ticket,'Bill'),
+                      child: const Text('Download Invoice PDF'),
+                    ),
+                  ] else ...[
+                    const Text('No billing or invoice data found.'),
+                  ],
+                ],
+              ),
             ),
             actions: [DialogButton(label: 'Close', onPressed: () => Navigator.pop(context))],
           ),
@@ -309,7 +296,7 @@ class _TicketListingPageState extends State<TicketListingPage> {
   }
 
   void confirmStatusChange(int ticketId, String currentStatus) {
-    final statusOptions = ['QC1', 'QC2', 'LISTED', 'FACTORY', 'SCRAPED']
+    final statusOptions = ['QC', 'LISTED', 'FACTORY', 'SCRAPED']
         .where((status) => status != currentStatus)
         .toList();
 
@@ -507,155 +494,7 @@ class _TicketListingPageState extends State<TicketListingPage> {
       },
     );
   }
-  Future<void> createBill(int ticketId) async {
-    final authStore = Provider.of<AuthStore>(context, listen: false);
-    final TextEditingController customerNameController = TextEditingController();
-    final TextEditingController phoneNumberController = TextEditingController();
-    final TextEditingController gstIdController = TextEditingController();
-    final TextEditingController modeOfPaymentController = TextEditingController();
-    final TextEditingController onlineTrxIdController = TextEditingController();
-    final TextEditingController placeOfSaleController = TextEditingController();
-    final TextEditingController profitController = TextEditingController();
-    bool isSubmitting = false;
 
-    await showDialog(
-      context: context,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setState) => CustomDialog(
-          title: 'Create Bill',
-          maxWidth: 500,
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              InfoSection(
-                title: 'Customer Information',
-                rows: const [],
-                hasDivider: false,
-              ),
-              TextField(
-                controller: customerNameController,
-                decoration: const InputDecoration(
-                  labelText: 'Customer Name',
-                  prefixIcon: Icon(Icons.person),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: phoneNumberController,
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number',
-                  prefixIcon: Icon(Icons.phone),
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: gstIdController,
-                decoration: const InputDecoration(
-                  labelText: 'GST ID (optional)',
-                  prefixIcon: Icon(Icons.receipt),
-                ),
-              ),
-              const SizedBox(height: 24),
-              InfoSection(
-                title: 'Payment Details',
-                rows: const [],
-                hasDivider: false,
-              ),
-              TextField(
-                controller: modeOfPaymentController,
-                decoration: const InputDecoration(
-                  labelText: 'Mode of Payment',
-                  prefixIcon: Icon(Icons.payment),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: onlineTrxIdController,
-                decoration: const InputDecoration(
-                  labelText: 'Online Transaction ID',
-                  prefixIcon: Icon(Icons.confirmation_number),
-                ),
-              ),
-              const SizedBox(height: 24),
-              InfoSection(
-                title: 'Additional Information',
-                rows: const [],
-                hasDivider: false,
-              ),
-              TextField(
-                controller: placeOfSaleController,
-                decoration: const InputDecoration(
-                  labelText: 'Place of Sale',
-                  prefixIcon: Icon(Icons.location_on),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: profitController,
-                decoration: const InputDecoration(
-                  labelText: 'Profit (optional)',
-                  prefixIcon: Icon(Icons.trending_up),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-            ],
-          ),
-          actions: [
-            DialogButton(
-              label: 'Cancel',
-              onPressed: () => Navigator.pop(context),
-            ),
-            DialogButton(
-              label: 'Create',
-              isPrimary: true,
-              isLoading: isSubmitting,
-              onPressed: () async {
-                setState(() => isSubmitting = true);
-
-                final uri = Uri.parse('https://api.abcoped.shop/api/ticket/$ticketId/create-bill');
-                final body = {
-                  'customerName': customerNameController.text.trim(),
-                  'phoneNumber': phoneNumberController.text.trim(),
-                  'gstId': gstIdController.text.trim(),
-                  'modeOfPayment': modeOfPaymentController.text.trim(),
-                  'onlineTrxId': onlineTrxIdController.text.trim(),
-                  'placeOfSale': placeOfSaleController.text.trim(),
-                  if (profitController.text.isNotEmpty) 'profit': int.tryParse(profitController.text.trim()),
-                };
-
-                try {
-                  final response = await http.post(
-                    uri,
-                    headers: {
-                      'Authorization': 'Bearer ${authStore.token}',
-                      'Content-Type': 'application/json',
-                    },
-                    body: json.encode(body),
-                  );
-
-                  if (response.statusCode == 200) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Bill created successfully')),
-                    );
-                    await fetchTickets();
-                  } else {
-                    showError('Failed to create bill. Status: ${response.statusCode}');
-                  }
-                } catch (e) {
-                  showError('Error creating bill: $e');
-                } finally {
-                  setState(() => isSubmitting = false);
-                }
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   void clearInvoiceFrom() => setState(() => invoiceDateFrom = null);
   void clearInvoiceTo() => setState(() => invoiceDateTo = null);
@@ -668,14 +507,25 @@ class _TicketListingPageState extends State<TicketListingPage> {
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton(icon: const Icon(Icons.visibility), onPressed: () => ticket['ticketStatus'] != 'SOLD' ?showTicketInfo(ticket['ticketId']):showSoldTicketInfo(ticket['ticketId'])),
+          IconButton(icon: const Icon(Icons.visibility), onPressed: () => showSoldTicketInfo(ticket['ticketId'])),
+          if (ticket['ticketStatus'] == 'SOLD')IconButton(icon: const Icon(Icons.receipt_rounded), onPressed: () => showSoldTicketBill(ticket['ticketId'])),
           if (ticket['ticketStatus'] != 'SOLD')IconButton(icon: const Icon(Icons.edit), onPressed: () => confirmStatusChange(ticket['ticketId'], ticket['status'] ?? '')),
           if (ticket['ticketStatus'] == 'LISTED')
             IconButton(
               icon: const Icon(Icons.receipt_long),
               tooltip: 'Create Bill',
-              onPressed: () => createBill(ticket['ticketId']),
+              onPressed: () => addToSellCart(
+                ticketIds: [ticket['ticketId']],
+                authToken: Provider.of<AuthStore>(context, listen: false).token ?? '',
+              ).then((success) {
+                if (success) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to Sell Cart')));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to add to Sell Cart')));
+                }
+              }
             ),
+            )
         ],
       ),
     ),
@@ -684,7 +534,47 @@ class _TicketListingPageState extends State<TicketListingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title ?? 'Tickets')),
+      appBar: AppBar(title: Text(widget.title ?? 'Tickets'),
+        actions: [
+          if (widget.status == 'LISTED')
+            Stack(
+        alignment: Alignment.topRight,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart),
+            tooltip: 'Go to Cart',
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SellCartPage()),
+              );
+              fetchCartCount(); // Refresh count after returning
+            },
+          ),
+          if (cartCount > 0)
+            Positioned(
+              right: 6,
+              top: 6,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$cartCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+
+      ],),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -701,4 +591,100 @@ class _TicketListingPageState extends State<TicketListingPage> {
       ),
     );
   }
+  Future<void> fetchCartCount() async {
+    final authStore = Provider.of<AuthStore>(context, listen: false);
+    try {
+      final uri = Uri.parse('https://api.abcoped.shop/api/ticket/cart/items?cartType=SELL');
+      final response = await http.get(uri, headers: {
+        'Authorization': 'Bearer ${authStore.token}',
+      });
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          cartCount = data['totalElements'] ?? 0;
+        });
+      }
+    } catch (e) {
+      // Handle errors silently or show snackbar/log
+    }
+  }
+
+  Future<bool> addToSellCart({
+    required List<int> ticketIds,
+    required String authToken,
+  }) async {
+    final url = Uri.parse('https://api.abcoped.shop/api/ticket/cart/items/sell/add');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $authToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'ticketIds': ticketIds,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
+
+
+
+  void generateInvoicePdf(Map<String, dynamic> ticket, String journey) async {
+    final pdf = pw.Document();
+    final invoice = ticket['invoiceDto'] ?? {};
+
+    pdf.addPage(
+      pw.Page(
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(journey, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 16),
+              pw.Text('Invoice Number: ${invoice['invoiceNumber'] ?? 'N/A'}'),
+              pw.Text('Invoice Date: ${invoice['invoiceDate'] ?? 'N/A'}'),
+              pw.Text('Customer Name: ${invoice['customerName'] ?? 'N/A'}'),
+              pw.Text('Phone: ${invoice['phoneNumber'] ?? 'N/A'}'),
+              pw.Text('GST ID: ${invoice['gstId'] ?? 'N/A'}'),
+              pw.SizedBox(height: 10),
+              pw.Text('Payments:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              ...List<pw.Widget>.from((invoice['payments'] ?? []).map<pw.Widget>((payment) {
+                return pw.Text(
+                  '${payment['modeOfPayment'] ?? 'N/A'}: ₹${payment['amount'] ?? 0}'
+                      '${payment['transactionId'] != null ? ' (Txn: ${payment['transactionId']})' : ''}'
+                      '${payment['paidAt'] != null ? ' on ${payment['paidAt']}' : ''}',
+                );
+              })),
+            ],
+          );
+        },
+      ),
+    );
+
+    // Ensure valid Uint8List output
+    final Uint8List pdfBytes = await pdf.save();
+
+    // Create blob and download link
+    final blob = html.Blob([pdfBytes], 'application/pdf');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+
+    final anchor = html.AnchorElement(href: url)
+      ..setAttribute('download', 'invoice_${ticket['ticketId']}.pdf')
+      ..click();
+
+    html.Url.revokeObjectUrl(url);
+  }
+
+
 }

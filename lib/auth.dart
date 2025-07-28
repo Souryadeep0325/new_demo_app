@@ -5,8 +5,7 @@ import 'package:http/http.dart' as http;
 
 class AuthStore extends ChangeNotifier {
   bool _isAuthenticated = false;
-  int qc1 = 0;
-  int qc2 = 0;
+  int qc = 0;
   int listed = 0;
   int sold = 0;
   int factory = 0;
@@ -78,14 +77,13 @@ class AuthStore extends ChangeNotifier {
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
 
-      qc1 = data['QC1'] ?? 0;
-      qc2 = data['QC2'] ?? 0;
+      qc = data['QC'] ?? 0;
       listed = data['LISTED'] ?? 0;
       sold = data['SOLD'] ?? 0;
       factory = data['FACTORY'] ?? 0;
       scraped = data['SCRAPED'] ?? 0;
-      totalTickets = qc1 + qc2 +listed + factory+ sold + scraped;
-      completedTickets = listed + qc1  +qc2+ factory;
+      totalTickets = qc +listed + factory+ sold + scraped;
+      completedTickets = listed + qc+ factory;
       pendingTickets = sold +scraped;
     } else {
       throw Exception('Failed to fetch ticket counts. Status: ${response.statusCode}');

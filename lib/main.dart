@@ -249,18 +249,18 @@ class _MyAppState extends State<MyApp> {
                 return MaterialPageRoute(builder: (_) => const PurchasesPage());
               case '/listing':
                 return MaterialPageRoute(builder: (_) => const TicketListingPage(status: 'LISTED', title: 'Listed Products'));
-              case '/qc1':
+              case '/qc':
                 return MaterialPageRoute(
-                  builder: (_) => const TicketListingPage(status: 'QC1', title: 'QC1 Tickets'),
+                  builder: (_) => const TicketListingPage(status: 'QC', title: 'QC Tickets'),
                 );
               case '/factory':
                 return MaterialPageRoute(
                   builder: (_) => const TicketListingPage(status: 'Factory', title: 'Factory Tickets'),
                 );
-              case '/qc2':
-                return MaterialPageRoute(
-                  builder: (_) => const TicketListingPage(status: 'QC2', title: 'QC2 Tickets'),
-                );
+              // case '/qc2':
+              //   return MaterialPageRoute(
+              //     builder: (_) => const TicketListingPage(status: 'QC2', title: 'QC2 Tickets'),
+              //   );
               case '/scrap':
                 return MaterialPageRoute(
                   builder: (_) => const TicketListingPage(status: 'Scraped', title: 'Scrap Tickets'),
