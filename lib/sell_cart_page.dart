@@ -1,8 +1,6 @@
 import 'dart:convert';
-import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:pdf/widgets.dart' as pw;
 import 'package:provider/provider.dart';
 
 import 'auth.dart';
@@ -93,7 +91,7 @@ class _SellCartPageState extends State<SellCartPage> {
   Future<void> checkoutCart() async {
     final formData = await showDialog<Map<String, dynamic>>(
       context: context,
-      builder: (_) => const _BillingFormDialog(),
+      builder: (_) => const _BillingFormDialog(totalAmount: 1000000,),
     );
 
     if (formData == null) return;
@@ -113,6 +111,7 @@ class _SellCartPageState extends State<SellCartPage> {
     );
 
     if (response.statusCode == 200) {
+      await authStore.fetchTicketStatusCounts();
       Navigator.pop(context); // go back or refresh
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -191,8 +190,194 @@ class _SellCartPageState extends State<SellCartPage> {
     );
   }
 }
+// class _BillingFormDialog extends StatefulWidget {
+//   const _BillingFormDialog({super.key});
+//
+//   @override
+//   State<_BillingFormDialog> createState() => _BillingFormDialogState();
+// }
+//
+// class _BillingFormDialogState extends State<_BillingFormDialog> {
+//   final _formKey = GlobalKey<FormState>();
+//   final _customerNameController = TextEditingController();
+//   final _phoneNumberController = TextEditingController();
+//   final _gstIdController = TextEditingController();
+//   final _billNumberController = TextEditingController();
+//   final _billDateController = TextEditingController();
+//   final List<PaymentEntry> _payments = [PaymentEntry()];
+//
+//   @override
+//   void dispose() {
+//     _customerNameController.dispose();
+//     _phoneNumberController.dispose();
+//     _gstIdController.dispose();
+//     _billNumberController.dispose();
+//     _billDateController.dispose();
+//     super.dispose();
+//   }
+//
+//   void _submitForm() {
+//     if (_formKey.currentState!.validate()) {
+//       final formData = {
+//         'customerName': _customerNameController.text,
+//         'phoneNumber': _phoneNumberController.text,
+//         'gstId': _gstIdController.text.isNotEmpty ? _gstIdController.text : null,
+//         'billNumber': _billNumberController.text,
+//         'billDate': _billDateController.text,
+//         'payments': _payments.map((p) => p.toJson()).toList(),
+//       };
+//
+//       Navigator.of(context).pop(formData);
+//     }
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return AlertDialog(
+//       title: const Text('Billing Details'),
+//       content: SingleChildScrollView(
+//         child: Form(
+//           key: _formKey,
+//           child: Column(
+//             children: [
+//               TextFormField(
+//                 controller: _customerNameController,
+//                 decoration: const InputDecoration(labelText: 'Customer Name'),
+//                 validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+//               ),
+//               TextFormField(
+//                 controller: _phoneNumberController,
+//                 decoration: const InputDecoration(labelText: 'Phone Number'),
+//                 keyboardType: TextInputType.phone,
+//                 validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+//               ),
+//               TextFormField(
+//                 controller: _gstIdController,
+//                 decoration: const InputDecoration(labelText: 'GST ID (optional)'),
+//               ),
+//               TextFormField(
+//                 controller: _billNumberController,
+//                 decoration: const InputDecoration(labelText: 'Bill Number'),
+//                 validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+//               ),
+//               TextFormField(
+//                 controller: _billDateController,
+//                 decoration: const InputDecoration(labelText: 'Bill Date (YYYY-MM-DD)'),
+//                 validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+//               ),
+//               const SizedBox(height: 12),
+//               const Divider(),
+//               const Text('Payments', style: TextStyle(fontWeight: FontWeight.bold)),
+//               ..._payments.asMap().entries.map((entry) {
+//                 final index = entry.key;
+//                 final payment = entry.value;
+//                 return PaymentEntryWidget(
+//                   key: ValueKey(index),
+//                   entry: payment,
+//                   onRemove: _payments.length > 1
+//                       ? () => setState(() => _payments.removeAt(index))
+//                       : null,
+//                 );
+//               }),
+//               Align(
+//                 alignment: Alignment.centerLeft,
+//                 child: TextButton.icon(
+//                   onPressed: () => setState(() => _payments.add(PaymentEntry())),
+//                   icon: const Icon(Icons.add),
+//                   label: const Text('Add Payment Mode'),
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//       actions: [
+//         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+//         ElevatedButton(onPressed: _submitForm, child: const Text('Submit')),
+//       ],
+//     );
+//   }
+// }
+//
+// class PaymentEntry {
+//   String? modeOfPayment;
+//   double? amount;
+//   String? transactionId;
+//   String? paidAt;
+//
+//   Map<String, dynamic> toJson() {
+//     final map = {
+//       'modeOfPayment': modeOfPayment,
+//       'amount': amount,
+//     };
+//     if (transactionId != null && transactionId!.isNotEmpty) {
+//       map['transactionId'] = transactionId;
+//     }
+//     if (paidAt != null && paidAt!.isNotEmpty) {
+//       map['paidAt'] = paidAt;
+//     }
+//     return map;
+//   }
+// }
+//
+// class PaymentEntryWidget extends StatelessWidget {
+//   final PaymentEntry entry;
+//   final VoidCallback? onRemove;
+//
+//   const PaymentEntryWidget({
+//     super.key,
+//     required this.entry,
+//     this.onRemove,
+//   });
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Column(
+//       children: [
+//         DropdownButtonFormField<String>(
+//           value: entry.modeOfPayment,
+//           items: const [
+//             DropdownMenuItem(value: 'CASH', child: Text('Cash')),
+//             DropdownMenuItem(value: 'UPI', child: Text('UPI')),
+//             DropdownMenuItem(value: 'CARD', child: Text('Card')),
+//             DropdownMenuItem(value: 'BANK_TRANSFER', child: Text('Bank Transfer')),
+//           ],
+//           onChanged: (val) => entry.modeOfPayment = val,
+//           decoration: const InputDecoration(labelText: 'Mode of Payment'),
+//           validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+//         ),
+//         TextFormField(
+//           keyboardType: TextInputType.number,
+//           decoration: const InputDecoration(labelText: 'Amount'),
+//           onChanged: (val) => entry.amount = double.tryParse(val),
+//           validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+//         ),
+//         TextFormField(
+//           decoration: const InputDecoration(labelText: 'Transaction ID (optional)'),
+//           onChanged: (val) => entry.transactionId = val,
+//         ),
+//         TextFormField(
+//           decoration: const InputDecoration(labelText: 'Paid At (optional)'),
+//           onChanged: (val) => entry.paidAt = val,
+//         ),
+//         if (onRemove != null)
+//           Align(
+//             alignment: Alignment.centerRight,
+//             child: TextButton.icon(
+//               onPressed: onRemove,
+//               icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+//               label: const Text('Remove'),
+//             ),
+//           ),
+//         const Divider(),
+//       ],
+//     );
+//   }
+// }
 class _BillingFormDialog extends StatefulWidget {
-  const _BillingFormDialog({super.key});
+  final double totalAmount;
+
+  const _BillingFormDialog({required this.totalAmount});
 
   @override
   State<_BillingFormDialog> createState() => _BillingFormDialogState();
@@ -200,177 +385,242 @@ class _BillingFormDialog extends StatefulWidget {
 
 class _BillingFormDialogState extends State<_BillingFormDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _customerNameController = TextEditingController();
-  final _phoneNumberController = TextEditingController();
-  final _gstIdController = TextEditingController();
-  final _billNumberController = TextEditingController();
-  final _billDateController = TextEditingController();
-  final List<PaymentEntry> _payments = [PaymentEntry()];
 
-  @override
-  void dispose() {
-    _customerNameController.dispose();
-    _phoneNumberController.dispose();
-    _gstIdController.dispose();
-    _billNumberController.dispose();
-    _billDateController.dispose();
-    super.dispose();
-  }
+  final Map<String, dynamic> _formData = {
+    'phoneNumber': '',
+    'customerName': '',
+    'gstNumber': '',
+    'gstId': '',
+    // 'Document Type': null,
+    // 'Document ID': '',
+    'storeId': '',
+  };
 
-  void _submitForm() {
-    if (_formKey.currentState!.validate()) {
-      final formData = {
-        'customerName': _customerNameController.text,
-        'phoneNumber': _phoneNumberController.text,
-        'gstId': _gstIdController.text.isNotEmpty ? _gstIdController.text : null,
-        'billNumber': _billNumberController.text,
-        'billDate': _billDateController.text,
-        'payments': _payments.map((p) => p.toJson()).toList(),
-      };
+  String? _validateRequired(String? val) =>
+      val == null || val.trim().isEmpty ? 'Required' : null;
 
-      Navigator.of(context).pop(formData);
-    }
-  }
+
+
+  List<Map<String, dynamic>> payments = [
+    {
+      'modeOfPayment': 'CASH',
+      'amount': 0.0,
+      'transactionId': '',
+      'paidAt': null,
+    },
+  ];
+
+  double get totalPaid =>
+      payments.fold(0.0, (sum, p) => sum + (p['amount'] ?? 0.0));
+
+  double get remainingAmount => widget.totalAmount - totalPaid;
+
+  bool get isPaymentComplete =>
+      (totalPaid - widget.totalAmount).abs() < 0.01;
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
       title: const Text('Billing Details'),
-      content: SingleChildScrollView(
+      content: SizedBox(
+        width: 500,
         child: Form(
           key: _formKey,
-          child: Column(
-            children: [
-              TextFormField(
-                controller: _customerNameController,
-                decoration: const InputDecoration(labelText: 'Customer Name'),
-                validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _phoneNumberController,
-                decoration: const InputDecoration(labelText: 'Phone Number'),
-                keyboardType: TextInputType.phone,
-                validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _gstIdController,
-                decoration: const InputDecoration(labelText: 'GST ID (optional)'),
-              ),
-              TextFormField(
-                controller: _billNumberController,
-                decoration: const InputDecoration(labelText: 'Bill Number'),
-                validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-              ),
-              TextFormField(
-                controller: _billDateController,
-                decoration: const InputDecoration(labelText: 'Bill Date (YYYY-MM-DD)'),
-                validator: (val) => val == null || val.isEmpty ? 'Required' : null,
-              ),
-              const SizedBox(height: 12),
-              const Divider(),
-              const Text('Payments', style: TextStyle(fontWeight: FontWeight.bold)),
-              ..._payments.asMap().entries.map((entry) {
-                final index = entry.key;
-                final payment = entry.value;
-                return PaymentEntryWidget(
-                  key: ValueKey(index),
-                  entry: payment,
-                  onRemove: _payments.length > 1
-                      ? () => setState(() => _payments.removeAt(index))
-                      : null,
-                );
-              }),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () => setState(() => _payments.add(PaymentEntry())),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Payment Mode'),
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                ..._formData.keys.map((key) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: TextFormField(
+                      decoration: InputDecoration(labelText: key == 'storeId'
+                          ? 'Store ID'
+                          : key == 'customerAadharId'
+                          ? 'Customer AadharId'
+                          : key == 'phoneNumber'
+                          ? 'Phone Number'
+                          : key == 'gstNumber'
+                          ? 'GST Number'
+                          : key == 'gstId'
+                          ? 'Business Name'
+                          : key == 'customerName' ? 'Customer Name' :key),
+                      keyboardType: (key == 'storeId' ||
+                          key == 'customerAadharId')
+                          ? TextInputType.number
+                          : TextInputType.text,
+                      onChanged: (val) => _formData[key] = val.trim(),
+                      validator: (val) {
+                        if ([ 'customerAadharId', 'customerName']
+                            .contains(key)) {
+                          return (val == null || val.isEmpty)
+                              ? 'Required'
+                              : null;
+                        }
+                        if (key == 'phoneNumber') {
+                          if (val == null || val.isEmpty) return 'Required';
+                          final phoneRegex = RegExp(r'^[6-9]\d{9}$');
+                          if (!phoneRegex.hasMatch(val.trim())) return 'Enter a valid 10-digit mobile number';
+                          return null;
+                        }
+                        return null;
+                      },
+                    ),
+                  );
+                }).toList(),
+
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Total Cost: ₹${widget.totalAmount.toStringAsFixed(2)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'Remaining: ₹${remainingAmount.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        color: isPaymentComplete
+                            ? Colors.green
+                            : Colors.redAccent,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 10),
+                const Divider(),
+                const SizedBox(height: 10),
+
+                const Text('Payment Methods',
+                    style:
+                    TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+
+                ...payments.asMap().entries.map((entry) {
+                  int index = entry.key;
+                  var payment = entry.value;
+
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 6),
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        children: [
+                          DropdownButtonFormField<String>(
+                            value: payment['modeOfPayment'],
+                            items: [
+                              'CASH',
+                              'CARD',
+                              'CHEQUE',
+                              'NET_BANKING',
+                              'UPI',
+                              'CREDIT'
+                            ].map((mode) {
+                              return DropdownMenuItem(
+                                  value: mode, child: Text(mode));
+                            }).toList(),
+                            onChanged: (value) =>
+                                setState(() => payment['modeOfPayment'] = value),
+                            decoration:
+                            const InputDecoration(labelText: 'Mode of Payment'),
+                          ),
+
+
+                          if (['UPI', 'CARD', 'NET_BANKING', 'CHEQUE','CREDIT']
+                              .contains(payment['modeOfPayment']))
+                            TextFormField(
+                              initialValue: payment['transactionId'],
+                              decoration:
+                              const InputDecoration(labelText: 'Transaction ID'),
+                              onChanged: (val) =>
+                              payment['transactionId'] = val.trim(),
+                            ),
+
+                          TextFormField(
+                            initialValue: payment['amount'].toString(),
+                            decoration:
+                            const InputDecoration(labelText: 'Amount'),
+                            keyboardType: TextInputType.number,
+                            onChanged: (val) => setState(() =>
+                            payment['amount'] = double.tryParse(val) ?? 0.0),
+                          ),
+
+                          if (index > 0)
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton.icon(
+                                icon: const Icon(Icons.delete),
+                                label: const Text('Remove'),
+                                onPressed: () {
+                                  setState(() => payments.removeAt(index));
+                                },
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Payment Method'),
+                    onPressed: () {
+                      setState(() {
+                        payments.add({
+                          'modeOfPayment': 'CASH',
+                          'amount': 0.0,
+                          'transactionId': '',
+                          'paidAt': null,
+                        });
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-        ElevatedButton(onPressed: _submitForm, child: const Text('Submit')),
-      ],
-    );
-  }
-}
-
-class PaymentEntry {
-  String? modeOfPayment;
-  double? amount;
-  String? transactionId;
-  String? paidAt;
-
-  Map<String, dynamic> toJson() {
-    final map = {
-      'modeOfPayment': modeOfPayment,
-      'amount': amount,
-    };
-    if (transactionId != null && transactionId!.isNotEmpty) {
-      map['transactionId'] = transactionId;
-    }
-    if (paidAt != null && paidAt!.isNotEmpty) {
-      map['paidAt'] = paidAt;
-    }
-    return map;
-  }
-}
-
-class PaymentEntryWidget extends StatelessWidget {
-  final PaymentEntry entry;
-  final VoidCallback? onRemove;
-
-  const PaymentEntryWidget({
-    super.key,
-    required this.entry,
-    this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        DropdownButtonFormField<String>(
-          value: entry.modeOfPayment,
-          items: const [
-            DropdownMenuItem(value: 'CASH', child: Text('Cash')),
-            DropdownMenuItem(value: 'UPI', child: Text('UPI')),
-            DropdownMenuItem(value: 'CARD', child: Text('Card')),
-            DropdownMenuItem(value: 'BANK_TRANSFER', child: Text('Bank Transfer')),
-          ],
-          onChanged: (val) => entry.modeOfPayment = val,
-          decoration: const InputDecoration(labelText: 'Mode of Payment'),
-          validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
         ),
-        TextFormField(
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Amount'),
-          onChanged: (val) => entry.amount = double.tryParse(val),
-          validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+        ElevatedButton(
+          onPressed: isPaymentComplete
+              ? () {
+            if (!_formKey.currentState!.validate()) return;
+
+            final sanitizedPayments = payments.map((p) {
+              final map = {
+                'modeOfPayment': p['modeOfPayment'],
+                'amount': p['amount'],
+              };
+              if ((p['transactionId'] ?? '').isNotEmpty) {
+                map['transactionId'] = p['transactionId'];
+              }
+              if (p['paidAt'] != null) {
+                map['paidAt'] = p['paidAt'];
+              }
+              return map;
+            }).toList();
+
+            _formData['payments'] = sanitizedPayments;
+            _formData['storeId'] =
+                int.tryParse(_formData['storeId'] ?? '') ?? 0;
+            _formData['customerAadharId'] =
+                int.tryParse(_formData['customerAadharId'] ?? '') ?? 0;
+
+            Navigator.pop(context, _formData);
+          }
+              : null,
+          child: const Text('Submit'),
         ),
-        TextFormField(
-          decoration: const InputDecoration(labelText: 'Transaction ID (optional)'),
-          onChanged: (val) => entry.transactionId = val,
-        ),
-        TextFormField(
-          decoration: const InputDecoration(labelText: 'Paid At (optional)'),
-          onChanged: (val) => entry.paidAt = val,
-        ),
-        if (onRemove != null)
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton.icon(
-              onPressed: onRemove,
-              icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-              label: const Text('Remove'),
-            ),
-          ),
-        const Divider(),
       ],
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:news_app/credit.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'auth.dart';
@@ -252,6 +253,10 @@ class _MyAppState extends State<MyApp> {
               case '/qc':
                 return MaterialPageRoute(
                   builder: (_) => const TicketListingPage(status: 'QC', title: 'QC Tickets'),
+                );
+              case '/credit':
+                return MaterialPageRoute(
+                  builder: (_) => const CreditPage(),
                 );
               case '/factory':
                 return MaterialPageRoute(

@@ -113,6 +113,7 @@ class _BuyCartPageState extends State<BuyCartPage> {
     if (response.statusCode == 200) {
       //final data = json.decode(response.body);
      // generateAndDownloadPdf(data);
+      await authStore.fetchTicketStatusCounts();
       Navigator.pop(context); // Navigate back after opening the PDF
 
     } else {
@@ -209,7 +210,7 @@ class _BuyCartPageState extends State<BuyCartPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Item ID: ${item['itemId']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                        //Text('Item ID: ${item['itemId']}', style: const TextStyle(fontWeight: FontWeight.bold)),
                         const Divider(),
                         ...details.map((detail) {
                           return ListTile(
@@ -222,6 +223,8 @@ class _BuyCartPageState extends State<BuyCartPage> {
                                 Text('Battery: ${detail['batteryHealth']}'),
                                 Text('RAM/ROM: ${detail['ramRomSpecs']}'),
                                 Text('Color: ${detail['colorSpecs'] ?? 'N/A'}'),
+                                Text('Acquisition Cost: ${detail['acquisitionCost'] ?? 'N/A'}'),
+
                               ],
                             ),
                             trailing: IconButton(
@@ -250,69 +253,6 @@ class _BuyCartPageState extends State<BuyCartPage> {
   }
 }
 
-// class _BillingFormDialog extends StatefulWidget {
-//   final double totalAmount;
-//   const _BillingFormDialog({required this.totalAmount});
-//   @override
-//   State<_BillingFormDialog> createState() => _BillingFormDialogState();
-// }
-//
-// class _BillingFormDialogState extends State<_BillingFormDialog> {
-//   final _formKey = GlobalKey<FormState>();
-//   final Map<String, dynamic> _formData = {
-//     'phoneNumber': '',
-//     'customerName': '',
-//     'gstNumber': '',
-//     'gstId': '',
-//     'productPurchaseType': 'CARD',
-//     'modeOfPayment': 'CARD',
-//     'customerAadharId': '',
-//     'storeId': '',
-//   };
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return AlertDialog(
-//       title: const Text('Billing Details'),
-//       content: SizedBox(
-//         width: 400,
-//         child: Form(
-//           key: _formKey,
-//           child: SingleChildScrollView(
-//             child: Column(
-//               children: _formData.keys.map((key) {
-//                 return Padding(
-//                   padding: const EdgeInsets.only(bottom: 10),
-//                   child: TextFormField(
-//                     decoration: InputDecoration(labelText: key),
-//                     keyboardType: key == 'storeId' || key == 'customerAadharId' ? TextInputType.number : TextInputType.text,
-//                     onChanged: (val) => _formData[key] = val.trim(),
-//                     validator: (val) => (key == 'storeId' || key == 'customerAadharId' || key == 'phoneNumber')
-//                         ? (val == null || val.isEmpty ? 'Required' : null)
-//                         : null,
-//                   ),
-//                 );
-//               }).toList(),
-//             ),
-//           ),
-//         ),
-//       ),
-//       actions: [
-//         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-//         ElevatedButton(
-//           onPressed: () {
-//             if (_formKey.currentState!.validate()) {
-//               _formData['storeId'] = int.tryParse(_formData['storeId'] ?? '') ?? 0;
-//               _formData['customerAadharId'] = int.tryParse(_formData['customerAadharId'] ?? '') ?? 0;
-//               Navigator.pop(context, _formData);
-//             }
-//           },
-//           child: const Text('Submit'),
-//         ),
-//       ],
-//     );
-//   }
-// }
 class _BillingFormDialog extends StatefulWidget {
   final double totalAmount;
 
@@ -330,10 +270,15 @@ class _BillingFormDialogState extends State<_BillingFormDialog> {
     'customerName': '',
     'gstNumber': '',
     'gstId': '',
-    'productPurchaseType': 'CARD',
-    'customerAadharId': '',
+    // 'Document Type': null,
+    // 'Document ID': '',
     'storeId': '',
   };
+
+  String? _validateRequired(String? val) =>
+      val == null || val.trim().isEmpty ? 'Required' : null;
+
+
 
   List<Map<String, dynamic>> payments = [
     {
@@ -347,8 +292,7 @@ class _BillingFormDialogState extends State<_BillingFormDialog> {
   double get totalPaid =>
       payments.fold(0.0, (sum, p) => sum + (p['amount'] ?? 0.0));
 
-  double get remainingAmount =>
-      (widget.totalAmount - totalPaid).clamp(0.0, widget.totalAmount);
+  double get remainingAmount => widget.totalAmount - totalPaid;
 
   bool get isPaymentComplete =>
       (totalPaid - widget.totalAmount).abs() < 0.01;
@@ -368,18 +312,34 @@ class _BillingFormDialogState extends State<_BillingFormDialog> {
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: TextFormField(
-                      decoration: InputDecoration(labelText: key),
+                      decoration: InputDecoration(labelText: key == 'storeId'
+                          ? 'Store ID'
+                          : key == 'customerAadharId'
+                          ? 'Customer AadharId'
+                          : key == 'phoneNumber'
+                          ? 'Phone Number'
+                          : key == 'gstNumber'
+                          ? 'GST Number'
+                          : key == 'gstId'
+                          ? 'Business Name'
+                          : key == 'customerName' ? 'Customer Name' :key ==  'documentType'? 'Document ID' : key),
                       keyboardType: (key == 'storeId' ||
                           key == 'customerAadharId')
                           ? TextInputType.number
                           : TextInputType.text,
                       onChanged: (val) => _formData[key] = val.trim(),
                       validator: (val) {
-                        if (['storeId', 'customerAadharId', 'phoneNumber']
+                        if (['storeId', 'customerAadharId', 'customerName']
                             .contains(key)) {
                           return (val == null || val.isEmpty)
                               ? 'Required'
                               : null;
+                        }
+                        if (key == 'phoneNumber') {
+                          if (val == null || val.isEmpty) return 'Required';
+                          final phoneRegex = RegExp(r'^[6-9]\d{9}$');
+                          if (!phoneRegex.hasMatch(val.trim())) return 'Enter a valid 10-digit mobile number';
+                          return null;
                         }
                         return null;
                       },
@@ -415,6 +375,30 @@ class _BillingFormDialogState extends State<_BillingFormDialog> {
                     style:
                     TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'Document Type'),
+                    value: _formData['documentType'],
+                    items: ['Aadhar Card', 'Driving License', 'Voter Card']
+                        .map((type) => DropdownMenuItem(
+                      value: type,
+                      child: Text(type),
+                    ))
+                        .toList(),
+                    onChanged: (val) => setState(() =>
+                    _formData['documentType'] = val),
+                    validator: (val) =>
+                    val == null ? 'Please select a document type' : null,
+                  ),
+                ),
+                // if (_formData['documentType'] != null)
+                //   Padding(
+                //     padding: const EdgeInsets.only(bottom: 10),
+                //     child: TextFormField(
+                //       decoration: const InputDecoration(labelText: 'Document ID'),
+                //     ),
+                //   ),
 
                 ...payments.asMap().entries.map((entry) {
                   int index = entry.key;
@@ -426,6 +410,7 @@ class _BillingFormDialogState extends State<_BillingFormDialog> {
                       padding: const EdgeInsets.all(8.0),
                       child: Column(
                         children: [
+
                           DropdownButtonFormField<String>(
                             value: payment['modeOfPayment'],
                             items: [
@@ -434,6 +419,7 @@ class _BillingFormDialogState extends State<_BillingFormDialog> {
                               'CHEQUE',
                               'NET_BANKING',
                               'UPI',
+                              'CREDIT'
                             ].map((mode) {
                               return DropdownMenuItem(
                                   value: mode, child: Text(mode));
@@ -444,7 +430,8 @@ class _BillingFormDialogState extends State<_BillingFormDialog> {
                             const InputDecoration(labelText: 'Mode of Payment'),
                           ),
 
-                          if (['UPI', 'CARD', 'NET_BANKING', 'CHEQUE']
+
+                          if (['UPI', 'CARD', 'NET_BANKING', 'CHEQUE','CREDIT']
                               .contains(payment['modeOfPayment']))
                             TextFormField(
                               initialValue: payment['transactionId'],

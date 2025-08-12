@@ -28,6 +28,7 @@ class HomePage extends StatelessWidget {
         {'title': 'Scrap', 'route': '/scrap'},
         // {'title': 'GST Calculation', 'route': '/gst_calculation'},
         {'title': 'All Products', 'route': '/all_products'},
+        {'title': 'Credit', 'route': '/credit'},
       ];
     } else if (authStore.role == 'user') {
       tileList = [

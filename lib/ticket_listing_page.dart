@@ -136,19 +136,21 @@ class _TicketListingPageState extends State<TicketListingPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Ticket ID: ${ticket['ticketId']}'),
-                  Text('Product: ${ticket['productName']}'),
+                  Text('Product Name: ${ticket['productName']}'),
                   Text('Status: ${ticket['ticketStatus']}'),
                   Text('Brand: ${ticket['brand']}'),
-                  Text('Acquisition Cost: ₹${ticket['acquisitionCost']}'),
-                  Text('Refurbished Cost: ₹${ticket['refurbishedCost'] ?? 0}'),
+                  // Text('Acquisition Cost: ₹${ticket['acquisitionCost']}'),
+                  // Text('Refurbished Cost: ₹${ticket['refurbishedCost'] ?? 0}'),
+                  if(invoice != null)Text('Invoice Date: ${invoice['invoiceDate'] ?? 'N/A'}'),
                   Text('Total Cost: ₹$totalCost'),
                   const Divider(),
-                  if (invoice != null) ...[
+                  if ((invoice != null && widget.status == 'LISTED')||
+                      (invoice != null && widget.status == 'Inventory')||
+                      (invoice != null && widget.status == '') ) ...[
                     Text('Invoice Number: ${invoice['invoiceNumber']}'),
-                    Text('Invoice Date: ${invoice['invoiceDate']}'),
                     Text('Customer Name: ${invoice['customerName']}'),
                     Text('Phone: ${invoice['phoneNumber']}'),
-                    Text('GST ID: ${invoice['gstId']}'),
+                    Text('GST No: ${invoice['gstNumber']}'),
                     Text('Product Purchase Type: ${invoice['productPurchaseType']}'),
                     const SizedBox(height: 10),
                     Text('Payments:', style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -164,9 +166,7 @@ class _TicketListingPageState extends State<TicketListingPage> {
                       onPressed: () => generateInvoicePdf(ticket,'Invoice'),
                       child: const Text('Download Invoice PDF'),
                     ),
-                  ] else ...[
-                    const Text('No invoice data found.'),
-                  ],
+                  ]
                 ],
               ),
             ),
@@ -312,14 +312,23 @@ class _TicketListingPageState extends State<TicketListingPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Current Status: $currentStatus'),
-            DropdownButtonFormField<String>(
+            // DropdownButtonFormField<String>(
+            //   value: selectedStatus,
+            //   items: statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+            //   onChanged: (value) => selectedStatus = value,
+            //   decoration: const InputDecoration(labelText: 'New Status'),
+            // ),
+            StatusDropdown(
+              currentStatus: widget.status,
               value: selectedStatus,
-              items: statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-              onChanged: (value) => selectedStatus = value,
-              decoration: const InputDecoration(labelText: 'New Status'),
+              onChanged: (val) {
+                setState(() {
+                  selectedStatus = val;
+                });
+              },
             ),
-            TextField(controller: commentController, decoration: const InputDecoration(labelText: 'Comment (optional)')),
-            TextField(controller: costController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Cost (optional)')),
+            TextField(controller: commentController, decoration: const InputDecoration(labelText: 'Comment')),
+            if(widget.status == 'Factory')TextField(controller: costController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Refurbishment Cost')),
           ],
         ),
         actions: [
@@ -357,6 +366,7 @@ class _TicketListingPageState extends State<TicketListingPage> {
           body: json.encode(body));
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Status updated for ticket $ticketId')));
+        await authStore.fetchTicketStatusCounts();
         fetchTickets();
       } else {
         showError('Failed to update status. Status: ${response.statusCode}');
@@ -509,7 +519,11 @@ class _TicketListingPageState extends State<TicketListingPage> {
         children: [
           IconButton(icon: const Icon(Icons.visibility), onPressed: () => showSoldTicketInfo(ticket['ticketId'])),
           if (ticket['ticketStatus'] == 'SOLD')IconButton(icon: const Icon(Icons.receipt_rounded), onPressed: () => showSoldTicketBill(ticket['ticketId'])),
-          if (ticket['ticketStatus'] != 'SOLD')IconButton(icon: const Icon(Icons.edit), onPressed: () => confirmStatusChange(ticket['ticketId'], ticket['status'] ?? '')),
+          if ((widget.status =='QC' ))IconButton(icon: const Icon(Icons.edit), onPressed: () => confirmStatusChange(ticket['ticketId'], ticket['status'] ?? '')),
+          if ((widget.status =='Factory' ))IconButton(icon: const Icon(Icons.edit), onPressed: () => confirmStatusChange(ticket['ticketId'], ticket['status'] ?? '')),
+          if ((widget.status =='Scraped' ))IconButton(icon: const Icon(Icons.edit), onPressed: () => confirmStatusChange(ticket['ticketId'], ticket['status'] ?? '')),
+          if ((widget.status =='LISTED' ))IconButton(icon: const Icon(Icons.edit), onPressed: () => confirmStatusChange(ticket['ticketId'], ticket['status'] ?? '')),
+
           if (ticket['ticketStatus'] == 'LISTED')
             IconButton(
               icon: const Icon(Icons.receipt_long),
@@ -571,6 +585,9 @@ class _TicketListingPageState extends State<TicketListingPage> {
                 ),
               ),
             ),
+
+          const Padding(padding: EdgeInsets.only(right: 16),
+          ),
         ],
       ),
 
@@ -629,6 +646,9 @@ class _TicketListingPageState extends State<TicketListingPage> {
       );
 
       if (response.statusCode == 200) {
+        await fetchCartCount();
+        setState(() {
+        });
         return true;
       } else {
         return false;
@@ -688,3 +708,47 @@ class _TicketListingPageState extends State<TicketListingPage> {
 
 
 }
+
+class StatusDropdown extends StatelessWidget {
+  final String currentStatus;
+  final String? value;
+  final void Function(String?) onChanged;
+
+  const StatusDropdown({
+    super.key,
+    required this.currentStatus,
+    required this.value,
+    required this.onChanged,
+  });
+
+  List<String> getStatusOptions(String currentStatus) {
+    switch (currentStatus) {
+      case 'QC':
+        return ['LISTED', 'FACTORY', 'SCRAPED'];
+      case 'LISTED':
+        return ['SCRAPED'];
+      case 'Factory':
+        return ['QC', 'SCRAPED'];
+      case 'Scraped':
+        return ['QC'];
+      default:
+        return [];
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final statusOptions = getStatusOptions(currentStatus);
+
+    return DropdownButtonFormField<String>(
+      value: value,
+      items: statusOptions
+          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+          .toList(),
+      onChanged: onChanged,
+      decoration: const InputDecoration(labelText: 'New Status'),
+      validator: (val) => val == null ? 'Please select a new status' : null,
+    );
+  }
+}
+

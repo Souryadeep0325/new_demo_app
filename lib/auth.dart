@@ -85,6 +85,7 @@ class AuthStore extends ChangeNotifier {
       totalTickets = qc +listed + factory+ sold + scraped;
       completedTickets = listed + qc+ factory;
       pendingTickets = sold +scraped;
+      notifyListeners();
     } else {
       throw Exception('Failed to fetch ticket counts. Status: ${response.statusCode}');
     }
