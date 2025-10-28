@@ -190,67 +190,322 @@ class _BuyCartPageState extends State<BuyCartPage> {
           ),
         ],
       ),
+      // body: isLoading
+      //     ? const Center(child: CircularProgressIndicator())
+      //     : cartItems.isEmpty
+      //     ? const Center(child: Text('Cart is empty'))
+      //     : Column(
+      //   children: [
+      //     Expanded(
+      //       child: ListView.builder(
+      //         itemCount: cartItems.length,
+      //         itemBuilder: (context, index) {
+      //           final item = cartItems[index];
+      //           final List<dynamic> details = item['details'] ?? [];
+      //
+      //           return Card(
+      //             margin: const EdgeInsets.all(8),
+      //             child: Padding(
+      //               padding: const EdgeInsets.all(8.0),
+      //               child: Column(
+      //                 crossAxisAlignment: CrossAxisAlignment.start,
+      //                 children: [
+      //                   //Text('Item ID: ${item['itemId']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+      //                   const Divider(),
+      //                   ...details.map((detail) {
+      //                     return ListTile(
+      //                       title: Text(detail['productName'] ?? 'No name'),
+      //                       subtitle: Column(
+      //                         crossAxisAlignment: CrossAxisAlignment.start,
+      //                         children: [
+      //                           Text('Brand: ${detail['brand']}'),
+      //                           Text('IMEI: ${detail['imeiNo']}'),
+      //                           Text('Battery: ${detail['batteryHealth']}'),
+      //                           Text('RAM/ROM: ${detail['ramRomSpecs']}'),
+      //                           Text('Color: ${detail['colorSpecs'] ?? 'N/A'}'),
+      //                           Text('Acquisition Cost: ${detail['acquisitionCost'] ?? 'N/A'}'),
+      //
+      //                         ],
+      //                       ),
+      //                       trailing: IconButton(
+      //                         icon: const Icon(Icons.remove_circle, color: Colors.red),
+      //                         onPressed: () => removeCartItem(detail['id']),
+      //                       ),
+      //                     );
+      //                   }).toList(),
+      //                 ],
+      //               ),
+      //             ),
+      //           );
+      //         },
+      //       ),
+      //     ),
+      //     ElevatedButton.icon(
+      //       onPressed: checkoutCart,
+      //       icon: const Icon(Icons.shopping_cart_checkout),
+      //       label: const Text('Checkout from Cart'),
+      //       style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(16)),
+      //     ),
+      //     const SizedBox(height: 10),
+      //   ],
+      // ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : cartItems.isEmpty
           ? const Center(child: Text('Cart is empty'))
-          : Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              itemCount: cartItems.length,
-              itemBuilder: (context, index) {
-                final item = cartItems[index];
-                final List<dynamic> details = item['details'] ?? [];
+          : Center(
+            child: Column(
+                    children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.vertical,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    headingRowColor: MaterialStateProperty.all(Colors.grey[200]),
+                    columnSpacing: 28,
+                    headingTextStyle: const TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.black),
+                    border: TableBorder.all(
+                        color: Colors.grey.shade300, width: 1),
+                    columns: const [
+                      DataColumn(label: Text("Item ID")),
+                      DataColumn(label: Text("Serial No")),
+                      DataColumn(label: Text("IMEI")),
+                      DataColumn(label: Text("Product")),
+                      DataColumn(label: Text("Brand")),
+                      DataColumn(label: Text("RAM/ROM")),
+                      DataColumn(label: Text("Battery")),
+                      DataColumn(label: Text("Color")),
+                      DataColumn(label: Text("Acquisition Cost")),
+                      DataColumn(label: Text("Actions")),
+                    ],
+                    rows: cartItems.expand((item) {
+                      return (item['details'] as List).map((detail) {
+                        return DataRow(cells: [
+                          DataCell(Text(item['itemId'].toString())),
+                          DataCell(Text(detail['itemSerialNo'] ?? '-')),
+                          DataCell(Text(detail['imeiNo'] ?? '-')),
+                          DataCell(Text(detail['productName'] ?? '-')),
+                          DataCell(Text(detail['brand'] ?? '-')),
+                          DataCell(Text(detail['ramRomSpecs'] ?? '-')),
+                          DataCell(Text(detail['batteryHealth'] ?? '-')),
+                          DataCell(Text(detail['colorSpecs'] ?? 'N/A')),
+                          DataCell(Text("₹${detail['acquisitionCost'] ?? 0}")),
+                          DataCell(
 
-                return Card(
-                  margin: const EdgeInsets.all(8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        //Text('Item ID: ${item['itemId']}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                        const Divider(),
-                        ...details.map((detail) {
-                          return ListTile(
-                            title: Text(detail['productName'] ?? 'No name'),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            Row(
                               children: [
-                                Text('Brand: ${detail['brand']}'),
-                                Text('IMEI: ${detail['imeiNo']}'),
-                                Text('Battery: ${detail['batteryHealth']}'),
-                                Text('RAM/ROM: ${detail['ramRomSpecs']}'),
-                                Text('Color: ${detail['colorSpecs'] ?? 'N/A'}'),
-                                Text('Acquisition Cost: ${detail['acquisitionCost'] ?? 'N/A'}'),
-
+                                IconButton(
+                                  icon: const Icon(Icons.edit_note, color: Colors.black),
+                                  tooltip: "Remove Item",
+                                  onPressed: () => showEditCartDialog(context, item['id'],detail['id'],item["itemId"]),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.remove_circle, color: Colors.red),
+                                  tooltip: "Remove Item",
+                                  onPressed: () => removeCartItem(detail['id']),
+                                ),
                               ],
                             ),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.remove_circle, color: Colors.red),
-                              onPressed: () => removeCartItem(detail['id']),
-                            ),
-                          );
-                        }).toList(),
-                      ],
-                    ),
+                          ),
+                        ]);
+                      }).toList();
+                    }).toList(),
                   ),
-                );
-              },
+                ),
+              ),
             ),
+            const SizedBox(height: 10),
+            Text(
+              "Total Acquisition Cost: ₹${totalAcquisitionCost.toStringAsFixed(2)}",
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 10),
+            ElevatedButton.icon(
+              onPressed: checkoutCart,
+              icon: const Icon(Icons.shopping_cart_checkout),
+              label: const Text('Checkout from Cart'),
+              style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(16)),
+            ),
+            const SizedBox(height: 10),
+                    ],
+                  ),
           ),
-          ElevatedButton.icon(
-            onPressed: checkoutCart,
-            icon: const Icon(Icons.shopping_cart_checkout),
-            label: const Text('Checkout from Cart'),
-            style: ElevatedButton.styleFrom(padding: const EdgeInsets.all(16)),
-          ),
-          const SizedBox(height: 10),
-        ],
-      ),
+
     );
   }
+  Future<void> showEditCartDialog(
+      BuildContext context, int cartItemId, int detailId,int productMasterId) async {
+    final token = Provider.of<AuthStore>(context, listen: false).token;
+
+    List<String> colorOptions = [];
+    List<String> ramRomOptions = [];
+
+    String? selectedColor;
+    String? selectedRamRom;
+    final acquisitionCostController = TextEditingController();
+
+    // 🔹 Fetch specs from API
+    try {
+      final url = Uri.parse(
+          "https://api.abcoped.shop/api/product/select-specs/$productMasterId");
+
+      final response = await http.get(
+        url,
+        headers: {"Authorization": "Bearer $token"},
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        colorOptions = List<String>.from(data["Color specs"] ?? []);
+        ramRomOptions = List<String>.from(data["RAM-ROM specs"] ?? []);
+      } else {
+        print("❌ Failed to fetch specs: ${response.body}");
+      }
+    } catch (e) {
+      print("❌ Error fetching specs: $e");
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Edit Cart Item"),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Acquisition Cost
+                    TextField(
+                      controller: acquisitionCostController,
+                      decoration: const InputDecoration(
+                        labelText: "Acquisition Cost",
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Color Dropdown
+                    DropdownButtonFormField<String>(
+                      value: selectedColor,
+                      decoration: const InputDecoration(labelText: "Color"),
+                      items: colorOptions.isNotEmpty
+                          ? colorOptions
+                          .map((c) =>
+                          DropdownMenuItem(value: c, child: Text(c)))
+                          .toList()
+                          : [
+                        const DropdownMenuItem(
+                            value: null, child: Text("Enter manually"))
+                      ],
+                      onChanged: (val) => setState(() => selectedColor = val),
+                    ),
+
+                    if (colorOptions.isEmpty)
+                      TextField(
+                        onChanged: (val) => selectedColor = val,
+                        decoration:
+                        const InputDecoration(labelText: "Enter Color"),
+                      ),
+
+                    const SizedBox(height: 12),
+
+                    // RAM-ROM Dropdown
+                    DropdownButtonFormField<String>(
+                      value: selectedRamRom,
+                      decoration: const InputDecoration(labelText: "RAM-ROM"),
+                      items: ramRomOptions.isNotEmpty
+                          ? ramRomOptions
+                          .map((r) =>
+                          DropdownMenuItem(value: r, child: Text(r)))
+                          .toList()
+                          : [
+                        const DropdownMenuItem(
+                            value: null, child: Text("Enter manually"))
+                      ],
+                      onChanged: (val) => setState(() => selectedRamRom = val),
+                    ),
+
+                    if (ramRomOptions.isEmpty)
+                      TextField(
+                        onChanged: (val) => selectedRamRom = val,
+                        decoration:
+                        const InputDecoration(labelText: "Enter RAM-ROM"),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final acquisitionCost =
+                int.tryParse(acquisitionCostController.text.trim());
+
+
+
+                final details = [
+                  {
+                    "id": detailId,
+                    "acquisitionCost": acquisitionCost,
+                    "colorSpecs": selectedColor,
+                    "ramRomSpecs": selectedRamRom,
+                  }
+                ];
+
+                await editCartItem(context,cartItemId, details);
+                Navigator.pop(context);
+              },
+              child: const Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+  Future<void> editCartItem(BuildContext context, int cartItemId, List<Map<String, dynamic>> details) async {
+    final token = Provider.of<AuthStore>(context, listen: false).token;
+
+    final url = Uri.parse("https://api.abcoped.shop/api/ticket/BUY/items/$cartItemId");
+
+    final body = jsonEncode({
+      "details": details,
+    });
+
+    final response = await http.patch(
+      url,
+      headers: {
+        "Authorization": "Bearer $token",
+        "Content-Type": "application/json",
+      },
+      body: body,
+    );
+
+    if (response.statusCode == 200) {
+      fetchCartItems();
+     // Navigator.of(context).pop(true); // close dialog and return success
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("✅ Cart item updated successfully")),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("❌ Update failed: ${response.statusCode}")),
+      );
+    }
+  }
+
 }
 
 class _BillingFormDialog extends StatefulWidget {
@@ -270,8 +525,7 @@ class _BillingFormDialogState extends State<_BillingFormDialog> {
     'customerName': '',
     'gstNumber': '',
     'gstId': '',
-    // 'Document Type': null,
-    // 'Document ID': '',
+    'customerDocumentId': '',
     'storeId': '',
   };
 
@@ -308,46 +562,127 @@ class _BillingFormDialogState extends State<_BillingFormDialog> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                ..._formData.keys.map((key) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: TextFormField(
-                      decoration: InputDecoration(labelText: key == 'storeId'
-                          ? 'Store ID'
-                          : key == 'customerAadharId'
-                          ? 'Customer AadharId'
-                          : key == 'phoneNumber'
-                          ? 'Phone Number'
-                          : key == 'gstNumber'
-                          ? 'GST Number'
-                          : key == 'gstId'
-                          ? 'Business Name'
-                          : key == 'customerName' ? 'Customer Name' :key ==  'documentType'? 'Document ID' : key),
-                      keyboardType: (key == 'storeId' ||
-                          key == 'customerAadharId')
-                          ? TextInputType.number
-                          : TextInputType.text,
-                      onChanged: (val) => _formData[key] = val.trim(),
-                      validator: (val) {
-                        if (['storeId', 'customerAadharId', 'customerName']
-                            .contains(key)) {
-                          return (val == null || val.isEmpty)
-                              ? 'Required'
-                              : null;
-                        }
-                        if (key == 'phoneNumber') {
+                // ..._formData.keys.map((key) {
+                //   return Padding(
+                //     padding: const EdgeInsets.only(bottom: 10),
+                //     child: TextFormField(
+                //       decoration: InputDecoration(labelText: key == 'storeId'
+                //           ? 'Store ID'
+                //           :key == 'phoneNumber'
+                //           ? 'Phone Number'
+                //           : key == 'gstNumber'
+                //           ? 'GST Number'
+                //           : key == 'gstId'
+                //           ? 'Business Name' :key == 'customerDocumentId' ? 'Customer Document Id'
+                //           : key == 'customerName' ? 'Customer Name' : key == 'documentType' ? '':key),
+                //       keyboardType: (key == 'storeId' ||
+                //           key == 'customerAadharId')
+                //           ? TextInputType.number
+                //           : TextInputType.text,
+                //       onChanged: (val) => _formData[key] = val.trim(),
+                //       validator: (val) {
+                //         if (['storeId', 'customerAadharId', 'customerName']
+                //             .contains(key)) {
+                //           return (val == null || val.isEmpty)
+                //               ? 'Required'
+                //               : null;
+                //         }
+                //         if (key == 'phoneNumber') {
+                //           if (val == null || val.isEmpty) return 'Required';
+                //           final phoneRegex = RegExp(r'^[6-9]\d{9}$');
+                //           if (!phoneRegex.hasMatch(val.trim())) return 'Enter a valid 10-digit mobile number';
+                //           return null;
+                //         }
+                //         return null;
+                //       },
+                //     ),
+                //   );
+                // }).toList(),
+
+                Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: TextFormField(
+                        decoration: const InputDecoration(labelText: 'Phone Number'),
+                        keyboardType: TextInputType.phone,
+                        onChanged: (val) => _formData['phoneNumber'] = val.trim(),
+                        validator: (val) {
                           if (val == null || val.isEmpty) return 'Required';
                           final phoneRegex = RegExp(r'^[6-9]\d{9}$');
                           if (!phoneRegex.hasMatch(val.trim())) return 'Enter a valid 10-digit mobile number';
                           return null;
-                        }
-                        return null;
-                      },
+                        },
+                      ),
                     ),
-                  );
-                }).toList(),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: TextFormField(
+                        decoration: const InputDecoration(labelText: 'Customer Name'),
+                        keyboardType: TextInputType.text,
+                        onChanged: (val) => _formData['customerName'] = val.trim(),
+                        validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: TextFormField(
+                        decoration: const InputDecoration(labelText: 'GST Number'),
+                        keyboardType: TextInputType.text,
+                        onChanged: (val) => _formData['gstNumber'] = val.trim(),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: TextFormField(
+                        decoration: const InputDecoration(labelText: 'Business Name'),
+                        keyboardType: TextInputType.text,
+                        onChanged: (val) => _formData['gstId'] = val.trim(),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: TextFormField(
+                        decoration: const InputDecoration(labelText: 'Customer Document Id'),
+                        keyboardType: TextInputType.text,
+                        onChanged: (val) => _formData['customerDocumentId'] = val.trim(),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: TextFormField(
+                        decoration: const InputDecoration(labelText: 'Store ID'),
+                        keyboardType: TextInputType.number,
+                        onChanged: (val) => _formData['storeId'] = val.trim(),
+                        validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                      ),
+                    ),
+                  ],
+                ),
 
                 const SizedBox(height: 16),
+
+                const Divider(),
+                const SizedBox(height: 10),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(labelText: 'Document Type'),
+                    initialValue: _formData['documentType'],
+                    items: ['DRIVING_LICENSE', 'VOTER_ID', 'PAN', 'AADHAAR', 'PASSPORT']
+                        .map((type) => DropdownMenuItem(
+                      value: type,
+                      child: Text(type),
+                    ))
+                        .toList(),
+                    onChanged: (val) => setState(() =>
+                    _formData['documentType'] = val),
+
+                    validator: (val) =>
+                    val == null ? 'Please select a document type' : null,
+                  ),
+                ),
+                const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -368,30 +703,12 @@ class _BillingFormDialogState extends State<_BillingFormDialog> {
                 ),
 
                 const SizedBox(height: 10),
-                const Divider(),
-                const SizedBox(height: 10),
 
                 const Text('Payment Methods',
                     style:
                     TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(labelText: 'Document Type'),
-                    value: _formData['documentType'],
-                    items: ['Aadhar Card', 'Driving License', 'Voter Card']
-                        .map((type) => DropdownMenuItem(
-                      value: type,
-                      child: Text(type),
-                    ))
-                        .toList(),
-                    onChanged: (val) => setState(() =>
-                    _formData['documentType'] = val),
-                    validator: (val) =>
-                    val == null ? 'Please select a document type' : null,
-                  ),
-                ),
+
                 // if (_formData['documentType'] != null)
                 //   Padding(
                 //     padding: const EdgeInsets.only(bottom: 10),
@@ -412,7 +729,7 @@ class _BillingFormDialogState extends State<_BillingFormDialog> {
                         children: [
 
                           DropdownButtonFormField<String>(
-                            value: payment['modeOfPayment'],
+                            initialValue: payment['modeOfPayment'],
                             items: [
                               'CASH',
                               'CARD',

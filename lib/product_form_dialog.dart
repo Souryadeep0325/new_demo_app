@@ -183,6 +183,13 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                 TextFormField(controller: batteryHealthController, decoration: const InputDecoration(labelText: 'Battery Health'),validator: _isBetween1And100),
                 //TextFormField(controller: warrantyController, decoration: const InputDecoration(labelText: 'Warranty')),
                 WarrantyDatePickerField(controller: warrantyController),
+                DropdownButtonFormField<String>(
+                  value: invoiceFlag,
+                  //decoration: const InputDecoration(labelText: 'Invoice Present'),
+                  items: _dropdownItemsWithHint(flags,'Invoice Present'),
+                  onChanged: (val) => setState(() => invoiceFlag = val),
+                  validator: _required,
+                ),
                 const SizedBox(height: 24),
                 const Text('Purchase Info', style: TextStyle(fontWeight: FontWeight.bold)),
              //   TextFormField(controller: invoiceNumberController, decoration: const InputDecoration(labelText: 'Invoice Number'), validator: _required),
@@ -218,36 +225,38 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                 ),
 
                 const SizedBox(height: 24),
+
+
                 const Text('Product Accessories', style: TextStyle(fontWeight: FontWeight.bold)),
                // DropdownButtonFormField(value: boxFlag, decoration: const InputDecoration(labelText: 'Box Present'), items: _dropdownItems(flags), onChanged: (val) => setState(() => boxFlag = val!), validator: _required),
                 DropdownButtonFormField<String>(
-                  value: boxFlag,
+                  initialValue: boxFlag,
                   decoration: const InputDecoration(labelText: 'Box Present'),
-                  items: _dropdownItemsWithHint(flags),
+                  items: _dropdownItemsWithHint(flags,'Box Present'),
                   onChanged: (val) => setState(() => boxFlag = val),
                   validator: _required,
                 ),
                 DropdownButtonFormField<String>(
-                  value: sealedFlag,
+                  initialValue: sealedFlag,
                   decoration: const InputDecoration(labelText: 'Sealed Box'),
-                  items: _dropdownItemsWithHint(flags),
+                  items: _dropdownItemsWithHint(flags,'Sealed Box'),
                   onChanged: (val) => setState(() => sealedFlag = val),
                   validator: _required,
                 ),
                 DropdownButtonFormField<String>(
-                  value: chargerFlag,
+                  initialValue: chargerFlag,
                   decoration: const InputDecoration(labelText: 'Charger Present'),
-                  items: _dropdownItemsWithHint(flags),
+                  items: _dropdownItemsWithHint(flags,'Charger Present'),
                   onChanged: (val) => setState(() => chargerFlag = val),
                   validator: _required,
                 ),
-                DropdownButtonFormField<String>(
-                  value: invoiceFlag,
-                  decoration: const InputDecoration(labelText: 'Invoice Present'),
-                  items: _dropdownItemsWithHint(flags),
-                  onChanged: (val) => setState(() => invoiceFlag = val),
-                  validator: _required,
-                ),
+                // DropdownButtonFormField<String>(
+                //   value: invoiceFlag,
+                //   //decoration: const InputDecoration(labelText: 'Invoice Present'),
+                //   items: _dropdownItemsWithHint(flags,'Invoice Present'),
+                //   onChanged: (val) => setState(() => invoiceFlag = val),
+                //   validator: _required,
+                // ),
                 //DropdownButtonFormField(value: chargerFlag, decoration: const InputDecoration(labelText: 'Charger Present'), items: _dropdownItems(flags), onChanged: (val) => setState(() => chargerFlag = val!), validator: _required),
                 //DropdownButtonFormField(value: sealedFlag, decoration: const InputDecoration(labelText: 'Sealed Box'), items: _dropdownItems(flags), onChanged: (val) => setState(() => sealedFlag = val!), validator: _required),
                 //DropdownButtonFormField(value: invoiceFlag, decoration: const InputDecoration(labelText: 'Invoice Present'), items: _dropdownItems(flags), onChanged: (val) => setState(() => invoiceFlag = val!), validator: _required),
@@ -280,11 +289,11 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
       items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList();
 
 
-  List<DropdownMenuItem<String>> _dropdownItemsWithHint(List<String> items) {
+  List<DropdownMenuItem<String>> _dropdownItemsWithHint(List<String> items, String placeHolderText) {
     return [
-      const DropdownMenuItem<String>(
+      DropdownMenuItem<String>(
         value: null,
-        child: Text('Select Box Status'), // Hint or label for dropdown
+        child: Text(placeHolderText), // Hint or label for dropdown
       ),
       ...items.map(
             (e) => DropdownMenuItem<String>(
@@ -311,6 +320,64 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
 
 
 
+// class WarrantyDatePickerField extends StatefulWidget {
+//   final TextEditingController controller;
+//
+//   const WarrantyDatePickerField({super.key, required this.controller});
+//
+//   @override
+//   State<WarrantyDatePickerField> createState() => _WarrantyDatePickerFieldState();
+// }
+//
+// class _WarrantyDatePickerFieldState extends State<WarrantyDatePickerField> {
+//   late FocusNode _focusNode;
+//
+//   @override
+//   void initState() {
+//     super.initState();
+//     _focusNode = FocusNode();
+//
+//     _focusNode.addListener(() async {
+//       if (_focusNode.hasFocus) {
+//         // Unfocus to prevent reopening
+//         _focusNode.unfocus();
+//
+//         final pickedDate = await showDatePicker(
+//           context: context,
+//           initialDate: DateTime.now(),
+//           firstDate: DateTime(2000),
+//           lastDate: DateTime(2100),
+//         );
+//
+//         if (pickedDate != null) {
+//           widget.controller.text = _formatDate(pickedDate);
+//         }
+//       }
+//     });
+//   }
+//
+//   String _formatDate(DateTime date) {
+//     return "${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}";
+//   }
+//
+//   @override
+//   void dispose() {
+//     _focusNode.dispose();
+//     super.dispose();
+//   }
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return TextFormField(
+//       controller: widget.controller,
+//       focusNode: _focusNode,
+//       decoration: const InputDecoration(labelText: 'Warranty Date',hintText: 'Select warranty date',),
+//       readOnly: true,
+//     );
+//   }
+// }
+
+
 class WarrantyDatePickerField extends StatefulWidget {
   final TextEditingController controller;
 
@@ -330,14 +397,28 @@ class _WarrantyDatePickerFieldState extends State<WarrantyDatePickerField> {
 
     _focusNode.addListener(() async {
       if (_focusNode.hasFocus) {
-        // Unfocus to prevent reopening
+        // Prevent keyboard and reopen loop
         _focusNode.unfocus();
 
         final pickedDate = await showDatePicker(
           context: context,
-          initialDate: DateTime.now(),
+          initialDate: _parseExistingDate(widget.controller.text) ?? DateTime.now(),
           firstDate: DateTime(2000),
           lastDate: DateTime(2100),
+          initialDatePickerMode: DatePickerMode.year, // 🔹 Opens with year view
+          helpText: 'Select Warranty Date',
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: ColorScheme.light(
+                  primary: Colors.blue.shade700,
+                  onPrimary: Colors.white,
+                  onSurface: Colors.black,
+                ),
+              ),
+              child: child!,
+            );
+          },
         );
 
         if (pickedDate != null) {
@@ -347,8 +428,24 @@ class _WarrantyDatePickerFieldState extends State<WarrantyDatePickerField> {
     });
   }
 
+  /// Parse existing text (dd-MM-yyyy) into DateTime if valid
+  DateTime? _parseExistingDate(String text) {
+    try {
+      final parts = text.split('-');
+      if (parts.length == 3) {
+        final day = int.parse(parts[0]);
+        final month = int.parse(parts[1]);
+        final year = int.parse(parts[2]);
+        return DateTime(year, month, day);
+      }
+    } catch (_) {}
+    return null;
+  }
+
   String _formatDate(DateTime date) {
-    return "${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}";
+    return "${date.day.toString().padLeft(2, '0')}-"
+        "${date.month.toString().padLeft(2, '0')}-"
+        "${date.year}";
   }
 
   @override
@@ -362,8 +459,12 @@ class _WarrantyDatePickerFieldState extends State<WarrantyDatePickerField> {
     return TextFormField(
       controller: widget.controller,
       focusNode: _focusNode,
-      decoration: const InputDecoration(labelText: 'Warranty Date',hintText: 'Select warranty date',),
+      decoration: const InputDecoration(
+        labelText: 'Warranty Date',
+        hintText: 'Select warranty date',
+      ),
       readOnly: true,
     );
   }
 }
+

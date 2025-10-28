@@ -69,12 +69,25 @@ class _UserProfilePanelState extends State<UserProfilePanel> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Text("Username: ${userData!['userName'] ?? ''}"),
+          // Text("Email: ${userData!['userEmail'] ?? ''}"),
+          // Text("Phone: ${userData!['phoneNumber'] ?? ''}"),
+          // Text("Store Name: ${userData!['storeName'] ?? ''}"),
+          // Text("DOB: ${userData!['dateOfBirth'] ?? 'N/A'}"),
+          // Text("Role: ${userData!['userRoles'] ?? ''}"),
           Text("Username: ${userData!['userName'] ?? ''}"),
           Text("Email: ${userData!['userEmail'] ?? ''}"),
           Text("Phone: ${userData!['phoneNumber'] ?? ''}"),
-          Text("Store Name: ${userData!['storeName'] ?? ''}"),
           Text("DOB: ${userData!['dateOfBirth'] ?? 'N/A'}"),
           Text("Role: ${userData!['userRoles'] ?? ''}"),
+
+          // Handle stores map
+          if (userData!['stores'] != null && userData!['stores'] is Map)
+            ...((userData!['stores'] as Map).entries.map((entry) =>
+                Text("Store ID: ${entry.key}, Store Name: ${entry.value}")
+            ))
+          else
+            const Text("No Store Assigned"),
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: changePassword,

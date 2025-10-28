@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:news_app/credit.dart';
+import 'package:news_app/customer_bills_page.dart';
+import 'package:news_app/customer_invoices_page.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'auth.dart';
 import 'login_page.dart';
 import 'home_page.dart';
-import 'sales_page.dart';
 import 'purchase_page.dart';
-import 'listing_page.dart';
 import 'gst_calculation_page.dart';
 import 'ticket_listing_page.dart';
 
@@ -281,6 +281,12 @@ class _MyAppState extends State<MyApp> {
               case '/gst_calculation':
                 return MaterialPageRoute(
                     builder: (_) => const GSTCalculationPage());
+              case '/all_invoices':
+                return MaterialPageRoute(
+                    builder: (_) => const CustomerInvoicesPage());
+              case '/all_bills':
+                return MaterialPageRoute(
+                    builder: (_) => const CustomerBillsPage());
               default:
                 return MaterialPageRoute(
                   builder: (_) => const Scaffold(

@@ -37,7 +37,12 @@ class TicketListingPage extends StatefulWidget {
 
 class _TicketListingPageState extends State<TicketListingPage> {
   List<dynamic> allTickets = [];
+  List<T> reverseList<T>(List<T> list) {
+    return list.reversed.toList();
+  }
+  List<dynamic> reverseAllTickets = [];
   bool isLoading = true;
+  bool _isSortedAsc = true;
 
   final ticketIdController = TextEditingController();
   final brandController = TextEditingController();
@@ -57,10 +62,16 @@ class _TicketListingPageState extends State<TicketListingPage> {
     if(widget.status == 'LISTED') {
       fetchCartCount();
     }
+   ;
   }
+  // Future<void> sortTapped() async {
+  //
+  //   setState(() => isLoading = true);
+  //
+  // }
 
   Future<void> fetchTickets() async {
-    setState(() => isLoading = true);
+
 
     final authStore = Provider.of<AuthStore>(context, listen: false);
     final params = {
@@ -85,6 +96,8 @@ class _TicketListingPageState extends State<TicketListingPage> {
       });
       if (response.statusCode == 200) {
         allTickets = json.decode(response.body);
+        reverseAllTickets = allTickets.reversed.toList();
+
       } else {
         showError('Failed to fetch tickets. Status: ${response.statusCode}');
       }
@@ -294,6 +307,132 @@ class _TicketListingPageState extends State<TicketListingPage> {
       showError('Error fetching ticket details: $e');
     }
   }
+  Widget _buildTicketsTable() {
+    if (allTickets.isEmpty) {
+      return const Center(child: Text("No tickets found."));
+    }
+
+    return Center(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: MaterialStateProperty.all(Colors.grey[200]),
+          columns: const [
+            DataColumn(label: Text("Ticket ID")),
+            DataColumn(label: Text("Product Name")),
+            DataColumn(label: Text("Status")),
+            DataColumn(label: Text("Cost")),
+            DataColumn(label: Text("Actions")),
+          ],
+          rows: _isSortedAsc ? allTickets.map((ticket)  {
+            final cost = (ticket['acquisitionCost'] ?? 0).toString();
+            return DataRow(cells: [
+              DataCell(Text(ticket['ticketId'].toString())),
+              DataCell(Text(ticket['productName'] ?? 'N/A')),
+              DataCell(Text(ticket['ticketStatus'] ?? 'N/A')),
+              DataCell(Text("₹$cost")),
+              DataCell(Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.visibility),
+                    tooltip: "View Ticket",
+                    onPressed: () => showSoldTicketInfo(ticket['ticketId']),
+                  ),
+                  if (ticket['ticketStatus'] == 'SOLD')
+                    IconButton(
+                      icon: const Icon(Icons.receipt_rounded),
+                      tooltip: "View Bill",
+                      onPressed: () => showSoldTicketBill(ticket['ticketId']),
+                    ),
+                  if ((widget.status == 'QC') ||
+                      (widget.status == 'Factory') ||
+                      (widget.status == 'Scraped') ||
+                      (widget.status == 'LISTED'))
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: "Change Status",
+                      onPressed: () => confirmStatusChange(
+                          ticket['ticketId'], ticket['status'] ?? ''),
+                    ),
+                  if (ticket['ticketStatus'] == 'LISTED')
+                    IconButton(
+                      icon: const Icon(Icons.receipt_long),
+                      tooltip: 'Create Bill',
+                      onPressed: () => addToSellCart(
+                        ticketIds: [ticket['ticketId']],
+                        authToken:
+                        Provider.of<AuthStore>(context, listen: false).token ??
+                            '',
+                      ).then((success) {
+                        if (success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Added to Sell Cart')));
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                              content: Text('Failed to add to Sell Cart')));
+                        }
+                      }),
+                    ),
+                ],
+              )),
+            ]);
+          }).toList() : reverseAllTickets.map((ticket)  {
+            final cost = (ticket['acquisitionCost'] ?? 0).toString();
+            return DataRow(cells: [
+              DataCell(Text(ticket['ticketId'].toString())),
+              DataCell(Text(ticket['productName'] ?? 'N/A')),
+              DataCell(Text(ticket['ticketStatus'] ?? 'N/A')),
+              DataCell(Text("₹$cost")),
+              DataCell(Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.visibility),
+                    tooltip: "View Ticket",
+                    onPressed: () => showSoldTicketInfo(ticket['ticketId']),
+                  ),
+                  if (ticket['ticketStatus'] == 'SOLD')
+                    IconButton(
+                      icon: const Icon(Icons.receipt_rounded),
+                      tooltip: "View Bill",
+                      onPressed: () => showSoldTicketBill(ticket['ticketId']),
+                    ),
+                  if ((widget.status == 'QC') ||
+                      (widget.status == 'Factory') ||
+                      (widget.status == 'Scraped') ||
+                      (widget.status == 'LISTED'))
+                    IconButton(
+                      icon: const Icon(Icons.edit),
+                      tooltip: "Change Status",
+                      onPressed: () => confirmStatusChange(
+                          ticket['ticketId'], ticket['status'] ?? ''),
+                    ),
+                  if (ticket['ticketStatus'] == 'LISTED')
+                    IconButton(
+                      icon: const Icon(Icons.receipt_long),
+                      tooltip: 'Create Bill',
+                      onPressed: () => addToSellCart(
+                        ticketIds: [ticket['ticketId']],
+                        authToken:
+                        Provider.of<AuthStore>(context, listen: false).token ??
+                            '',
+                      ).then((success) {
+                        if (success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Added to Sell Cart')));
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                              content: Text('Failed to add to Sell Cart')));
+                        }
+                      }),
+                    ),
+                ],
+              )),
+            ]);
+          }).toList(),
+        ),
+      ),
+    );
+  }
 
   void confirmStatusChange(int ticketId, String currentStatus) {
     final statusOptions = ['QC', 'LISTED', 'FACTORY', 'SCRAPED']
@@ -454,6 +593,22 @@ class _TicketListingPageState extends State<TicketListingPage> {
               child: const Text('Search'),
             ),
             const SizedBox(width: 8),
+            IconButton(
+              icon: Icon(
+                _isSortedAsc ? Icons.arrow_upward : Icons.arrow_downward,
+                color: Colors.blue, // keep your blue theme
+              ),
+              onPressed: () {
+                // Toggle the sort order
+                setState(() {
+                  _isSortedAsc = !_isSortedAsc;
+                });
+
+                // Call your search/sort function
+                //sortTapped();
+              },
+            ),
+            const SizedBox(width: 8),
             TextButton(
               onPressed: () {
                 ticketIdController.clear();
@@ -602,7 +757,8 @@ class _TicketListingPageState extends State<TicketListingPage> {
             buildSearchSection(),
             buildAppliedFilters(),
             const SizedBox(height: 16),
-            ...allTickets.map(buildTicketCard),
+            // ...allTickets.map(buildTicketCard),
+            _buildTicketsTable(),
           ],
         ),
       ),
@@ -634,6 +790,11 @@ class _TicketListingPageState extends State<TicketListingPage> {
     final url = Uri.parse('https://api.abcoped.shop/api/ticket/cart/items/sell/add');
 
     try {
+      final sellingCost = await _showSellingCostDialog();
+      if (sellingCost == null) {
+        // User cancelled the dialog
+        return false;
+      }
       final response = await http.post(
         url,
         headers: {
@@ -642,6 +803,7 @@ class _TicketListingPageState extends State<TicketListingPage> {
         },
         body: jsonEncode({
           'ticketIds': ticketIds,
+          'sellingCost':sellingCost
         }),
       );
 
@@ -656,6 +818,47 @@ class _TicketListingPageState extends State<TicketListingPage> {
     } catch (e) {
       return false;
     }
+  }
+
+  Future<double?> _showSellingCostDialog() async {
+    final TextEditingController controller = TextEditingController();
+
+    return showDialog<double>(
+      context: context,
+      barrierDismissible: false, // User must confirm or cancel explicitly
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text('Enter Selling Cost'),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.numberWithOptions(decimal: true),
+            decoration: InputDecoration(
+              hintText: 'Selling cost',
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(null); // Cancelled
+              },
+            ),
+            ElevatedButton(
+              child: Text('Submit'),
+              onPressed: () {
+                final text = controller.text.trim();
+                final cost = double.tryParse(text);
+                if (cost != null) {
+                  Navigator.of(dialogContext).pop(cost);
+                } else {
+                  // Optionally show error or ignore
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
 

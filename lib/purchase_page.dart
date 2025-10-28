@@ -132,25 +132,73 @@ class _PurchasesPageState extends State<PurchasesPage> {
     }
   }
 
+  // Widget _buildBrandTiles() {
+  //   return Wrap(
+  //     spacing: 8,
+  //     runSpacing: 8,
+  //     children: allBrands.map((brand) {
+  //       return ActionChip(
+  //         label: Text(brand),
+  //         onPressed: () {
+  //           setState(() {
+  //             selectedBrand = brand;
+  //             _productNameController.clear();
+  //             searchedProductName = '';
+  //             fetchProducts(brand: brand, productName: '', page: 0);
+  //           });
+  //         },
+  //       );
+  //     }).toList(),
+  //   );
+  // }
   Widget _buildBrandTiles() {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: allBrands.map((brand) {
-        return ActionChip(
-          label: Text(brand),
+    return GridView.builder(
+      // 👇 IMPORTANT: remove shrinkWrap and let Expanded handle sizing
+      padding: const EdgeInsets.all(8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,        // number of columns
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
+        childAspectRatio: 2.8,    // shape of tiles (wider buttons)
+      ),
+      itemCount: allBrands.length,
+      itemBuilder: (context, index) {
+        final brand = allBrands[index];
+        return ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue.shade50,
+            foregroundColor: Colors.black,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
           onPressed: () {
             setState(() {
               selectedBrand = brand;
               _productNameController.clear();
               searchedProductName = '';
-              fetchProducts(brand: brand, productName: '', page: 0);
+              fetchProducts(
+                brand: brand,
+                productName: '',
+                page: 0,
+              );
             });
           },
+          child: Text(
+            brand,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         );
-      }).toList(),
+      },
     );
   }
+
+
 
   Widget _buildSearchSection() {
     return Row(
@@ -286,35 +334,99 @@ class _PurchasesPageState extends State<PurchasesPage> {
         ),
         body: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: selectedBrand == null
-                  ? Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Select a Brand:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 10),
-                  _buildBrandTiles(),
-                ],
-              )
-                  : Column(
-                children: [
-                  _buildSearchSection(),
-                  const SizedBox(height: 10),
-                  if (hasSearched)
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Showing results for "$selectedBrand"' + (searchedProductName.isNotEmpty ? ' and "$searchedProductName"' : ''),
+            if (selectedBrand == null)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Select a Brand:',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
-                    ),
-                ],
+                      const SizedBox(height: 10),
+                      Expanded(child: _buildBrandTiles()), // ✅ valid here
+                    ],
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      _buildSearchSection(),
+                      const SizedBox(height: 10),
+                      if (hasSearched)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Showing results for "$selectedBrand"' +
+                                (searchedProductName.isNotEmpty
+                                    ? ' and "$searchedProductName"'
+                                    : ''),
+                          ),
+                        ),
+                      const SizedBox(height: 10),
+                      Expanded(child: _buildProductList()), // ✅ grows properly
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: _buildPagination(),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            if (selectedBrand != null) Expanded(child: _buildProductList()),
-            if (selectedBrand != null) Padding(padding: const EdgeInsets.all(16.0), child: _buildPagination()),
           ],
         ),
+
+        // body: Column(
+        //   children: [
+        //     Padding(
+        //       padding: const EdgeInsets.all(16),
+        //       child: selectedBrand == null
+        //           ?
+        //       // Column(
+        //       //   crossAxisAlignment: CrossAxisAlignment.start,
+        //       //   children: [
+        //       //     const Text('Select a Brand:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        //       //     const SizedBox(height: 10),
+        //       //     _buildBrandTiles(),
+        //       //   ],
+        //       // )
+        //       Column(
+        //         crossAxisAlignment: CrossAxisAlignment.start,
+        //         children: [
+        //           const Text(
+        //             'Select a Brand:',
+        //             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        //           ),
+        //           const SizedBox(height: 10),
+        //
+        //           // 👇 this fixes overflow and ensures grid shows up
+        //           Expanded(child: _buildBrandTiles()),
+        //         ],
+        //       )
+        //           : Column(
+        //         children: [
+        //           _buildSearchSection(),
+        //           const SizedBox(height: 10),
+        //           if (hasSearched)
+        //             Align(
+        //               alignment: Alignment.centerLeft,
+        //               child: Text(
+        //                 'Showing results for "$selectedBrand"' + (searchedProductName.isNotEmpty ? ' and "$searchedProductName"' : ''),
+        //               ),
+        //             ),
+        //         ],
+        //       ),
+        //     ),
+        //     if (selectedBrand != null) Expanded(child: _buildProductList()),
+        //     if (selectedBrand != null) Padding(padding: const EdgeInsets.all(16.0), child: _buildPagination()),
+        //   ],
+        // ),
       ),
     );
   }
