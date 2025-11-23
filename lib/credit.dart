@@ -551,73 +551,12 @@ class _CreditPageState extends State<CreditPage> {
   }
   // ---- END OF YOUR REPAY FUNCTIONS ----
 
-  // ========== ADDED: CHECK INVOICE / BILL ==========
-  Future<void> _checkInvoice(int invoiceId) async {
-    final authStore = Provider.of<AuthStore>(context, listen: false);
-    final url = 'https://api.abcoped.shop/api/invoice/check-invoice/$invoiceId';
-    try {
-      final res = await http.get(Uri.parse(url), headers: {
-        'Authorization': 'Bearer ${authStore.token}',
-        'Content-Type': 'application/json',
-      });
-      if (res.statusCode != 200) {
-        throw Exception('Failed to fetch invoice details: ${res.body}');
-      }
-      final data = jsonDecode(res.body);
-      _showInfoDialog('Invoice #$invoiceId', data);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    }
-  }
 
-  Future<void> _checkBill(int billId) async {
-    final authStore = Provider.of<AuthStore>(context, listen: false);
-    final url = 'https://api.abcoped.shop/api/bill/check-bill/$billId';
-    try {
-      final res = await http.get(Uri.parse(url), headers: {
-        'Authorization': 'Bearer ${authStore.token}',
-        'Content-Type': 'application/json',
-      });
-      if (res.statusCode != 200) {
-        throw Exception('Failed to fetch bill details: ${res.body}');
-      }
-      final data = jsonDecode(res.body);
-      _showInfoDialog('Bill #$billId', data);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
-    }
-  }
-
-  void _showInfoDialog(String title, dynamic data) {
-    final prettyJson = const JsonEncoder.withIndent('  ').convert(data);
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(title),
-        content: SingleChildScrollView(
-          child: SelectableText(
-            prettyJson,
-            style: const TextStyle(fontFamily: 'monospace'),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          )
-        ],
-      ),
-    );
-  }
   // =================================================
 
   List<dynamic> _applyFilters(List<dynamic> data, bool isInvoice) {
     return data.where((item) {
-      final id = isInvoice ? item['invoiceId'].toString() : item['billId'].toString();
+      final id = isInvoice ? item['invoiceNumber'].toString() : item['billNumber'].toString();
       final customer = (item['customerName'] ?? "").toString();
 
       final matchesId = searchId == null || searchId!.isEmpty || id.contains(searchId!);
@@ -692,7 +631,7 @@ class _CreditPageState extends State<CreditPage> {
           DataColumn(label: Text("Action")),
         ],
         rows: filteredData.map((credit) {
-          final id = isInvoice ? credit['invoiceId'] : credit['billId'];
+          final id = isInvoice ? credit['invoiceNumber'] : credit['billNumber'];
           final date = isInvoice ? credit['invoiceDate'] : credit['billDate'];
           final customer = credit['customerName'] ?? '';
           final remaining = credit['remainingCredit'] ?? 0;

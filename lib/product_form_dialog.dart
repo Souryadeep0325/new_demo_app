@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import 'auth.dart';
+import 'package:flutter/services.dart';
 
 class ProductFormDialog extends StatefulWidget {
   final int itemId;
@@ -107,11 +108,11 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
       "warranty": warrantyController.text,
       "boxFlag": boxFlag,
       "chargerFlag": chargerFlag,
-      "sealedFlag": sealedFlag,
+      "sealedFlag": sealedFlag ?? 'N',
       "invoiceFlag": invoiceFlag,
       "acquisitionCost": double.tryParse(acquisitionCostController.text) ?? 0.0,
       "ramRomSpecs": ramRomSpecsController.text,
-      "ColorSpecs": colorSpecsController.text,
+      "colorSpecs": colorSpecsController.text,
       "comments": commentsController.text,
       "productName": widget.productName,
       "cartType": "BUY",
@@ -163,31 +164,27 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Create Ticket for Item ID ${widget.itemId}', style: Theme.of(context).textTheme.displayLarge),
-                const SizedBox(height: 24),
+                Text('Create Ticket:', style: Theme.of(context).textTheme.displayLarge),
+                const SizedBox(height: 8),
 
                 Text('Product: ${widget.productName}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
 
-              //  const Text('Customer Information', style: TextStyle(fontWeight: FontWeight.bold)),
-              //  TextFormField(controller: customerNameController, decoration: const InputDecoration(labelText: 'Customer Name'), validator: _required),
-              //  TextFormField(controller: phoneNumberController, decoration: const InputDecoration(labelText: 'Phone Number'), validator: _required),
-               // TextFormField(controller: customerAadharIdController, decoration: const InputDecoration(labelText: 'Aadhar ID'), keyboardType: TextInputType.number, validator: _required),
-               // TextFormField(controller: gstNumberController, decoration: const InputDecoration(labelText: 'GST Number')),
-              //  TextFormField(controller: gstIdController, decoration: const InputDecoration(labelText: 'GST ID')),
 
-                const SizedBox(height: 24),
                 const Text('Product Details', style: TextStyle(fontWeight: FontWeight.bold)),
                // TextFormField(controller: itemSerialNoController, decoration: const InputDecoration(labelText: 'Item Serial No'), validator: _required),
                 TextFormField(controller: imeiNoController, decoration: const InputDecoration(labelText: 'IMEI No'), validator: _required),
                 TextFormField(controller: batteryHealthController, decoration: const InputDecoration(labelText: 'Battery Health'),validator: _isBetween1And100),
                 //TextFormField(controller: warrantyController, decoration: const InputDecoration(labelText: 'Warranty')),
                 WarrantyDatePickerField(controller: warrantyController),
+
                 DropdownButtonFormField<String>(
-                  value: invoiceFlag,
-                  //decoration: const InputDecoration(labelText: 'Invoice Present'),
-                  items: _dropdownItemsWithHint(flags,'Invoice Present'),
-                  onChanged: (val) => setState(() => invoiceFlag = val),
+                  initialValue: flags[1],
+                  decoration: const InputDecoration(labelText: 'Sealed Box'),
+                  items: _dropdownItemsWithHint(flags),
+                  onChanged: (val) {
+                    print("value is : $val");
+                    setState(() => sealedFlag = val ?? "N");},
                   validator: _required,
                 ),
                 const SizedBox(height: 24),
@@ -229,24 +226,26 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
 
                 const Text('Product Accessories', style: TextStyle(fontWeight: FontWeight.bold)),
                // DropdownButtonFormField(value: boxFlag, decoration: const InputDecoration(labelText: 'Box Present'), items: _dropdownItems(flags), onChanged: (val) => setState(() => boxFlag = val!), validator: _required),
+
                 DropdownButtonFormField<String>(
-                  initialValue: boxFlag,
+                  //initialValue: invoiceFlag,
+                  decoration: const InputDecoration(labelText: 'Invoice Present'),
+                  items: _dropdownItemsWithHint(flags),
+                  onChanged: (val) => setState(() => invoiceFlag = val),
+                  validator: _required,
+                ),
+                DropdownButtonFormField<String>(
+                 // initialValue: boxFlag,
                   decoration: const InputDecoration(labelText: 'Box Present'),
-                  items: _dropdownItemsWithHint(flags,'Box Present'),
+                  items: _dropdownItemsWithHint(flags),
                   onChanged: (val) => setState(() => boxFlag = val),
                   validator: _required,
                 ),
+
                 DropdownButtonFormField<String>(
-                  initialValue: sealedFlag,
-                  decoration: const InputDecoration(labelText: 'Sealed Box'),
-                  items: _dropdownItemsWithHint(flags,'Sealed Box'),
-                  onChanged: (val) => setState(() => sealedFlag = val),
-                  validator: _required,
-                ),
-                DropdownButtonFormField<String>(
-                  initialValue: chargerFlag,
+                  //initialValue: chargerFlag,
                   decoration: const InputDecoration(labelText: 'Charger Present'),
-                  items: _dropdownItemsWithHint(flags,'Charger Present'),
+                  items: _dropdownItemsWithHint(flags),
                   onChanged: (val) => setState(() => chargerFlag = val),
                   validator: _required,
                 ),
@@ -262,7 +261,7 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
                 //DropdownButtonFormField(value: invoiceFlag, decoration: const InputDecoration(labelText: 'Invoice Present'), items: _dropdownItems(flags), onChanged: (val) => setState(() => invoiceFlag = val!), validator: _required),
 
                 const SizedBox(height: 24),
-                const Text('Comments'),
+                const Text('Comments', style: TextStyle(fontWeight: FontWeight.bold)),
                 TextFormField(controller: commentsController, decoration: const InputDecoration(labelText: 'Comments')),
 
                 const SizedBox(height: 24),
@@ -289,12 +288,12 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
       items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList();
 
 
-  List<DropdownMenuItem<String>> _dropdownItemsWithHint(List<String> items, String placeHolderText) {
+  List<DropdownMenuItem<String>> _dropdownItemsWithHint(List<String> items) {
     return [
-      DropdownMenuItem<String>(
-        value: null,
-        child: Text(placeHolderText), // Hint or label for dropdown
-      ),
+      // DropdownMenuItem<String>(
+      //   value: null,
+      //   child: Text(placeHolderText), // Hint or label for dropdown
+      // ),
       ...items.map(
             (e) => DropdownMenuItem<String>(
           value: e,
@@ -378,93 +377,135 @@ class _ProductFormDialogState extends State<ProductFormDialog> {
 // }
 
 
+
+
+
 class WarrantyDatePickerField extends StatefulWidget {
   final TextEditingController controller;
 
   const WarrantyDatePickerField({super.key, required this.controller});
 
   @override
-  State<WarrantyDatePickerField> createState() => _WarrantyDatePickerFieldState();
+  State<WarrantyDatePickerField> createState() =>
+      _WarrantyDatePickerFieldState();
 }
 
 class _WarrantyDatePickerFieldState extends State<WarrantyDatePickerField> {
-  late FocusNode _focusNode;
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    _focusNode = FocusNode();
 
-    _focusNode.addListener(() async {
+    _focusNode.addListener(() {
       if (_focusNode.hasFocus) {
-        // Prevent keyboard and reopen loop
         _focusNode.unfocus();
-
-        final pickedDate = await showDatePicker(
-          context: context,
-          initialDate: _parseExistingDate(widget.controller.text) ?? DateTime.now(),
-          firstDate: DateTime(2000),
-          lastDate: DateTime(2100),
-          initialDatePickerMode: DatePickerMode.year, // 🔹 Opens with year view
-          helpText: 'Select Warranty Date',
-          builder: (context, child) {
-            return Theme(
-              data: Theme.of(context).copyWith(
-                colorScheme: ColorScheme.light(
-                  primary: Colors.blue.shade700,
-                  onPrimary: Colors.white,
-                  onSurface: Colors.black,
-                ),
-              ),
-              child: child!,
-            );
-          },
-        );
-
-        if (pickedDate != null) {
-          widget.controller.text = _formatDate(pickedDate);
-        }
+        _openDatePicker();
       }
     });
   }
 
-  /// Parse existing text (dd-MM-yyyy) into DateTime if valid
-  DateTime? _parseExistingDate(String text) {
+  Future<void> _openDatePicker() async {
+    final initialDate = _parseDDMMYYYY(widget.controller.text) ?? DateTime.now();
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      initialDatePickerMode: DatePickerMode.year,
+      helpText: 'Select Warranty Date',
+      locale: const Locale('en', 'GB'), // 🔥 Forces dd/MM/yyyy calendar
+    );
+
+    if (picked != null && mounted) {
+      widget.controller.text = formatDDMMYYYY(picked);
+      setState(() {});
+    }
+  }
+
+  DateTime? _parseDDMMYYYY(String value) {
     try {
-      final parts = text.split('-');
-      if (parts.length == 3) {
-        final day = int.parse(parts[0]);
-        final month = int.parse(parts[1]);
-        final year = int.parse(parts[2]);
-        return DateTime(year, month, day);
-      }
-    } catch (_) {}
-    return null;
+      final parts = value.split('/');
+      if (parts.length != 3) return null;
+      return DateTime(
+        int.parse(parts[2]),
+        int.parse(parts[1]),
+        int.parse(parts[0]),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
-  String _formatDate(DateTime date) {
-    return "${date.day.toString().padLeft(2, '0')}-"
-        "${date.month.toString().padLeft(2, '0')}-"
-        "${date.year}";
-  }
-
-  @override
-  void dispose() {
-    _focusNode.dispose();
-    super.dispose();
-  }
+  String formatDDMMYYYY(DateTime d) =>
+      "${d.day.toString().padLeft(2, '0')}/"
+          "${d.month.toString().padLeft(2, '0')}/"
+          "${d.year}";
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: widget.controller,
       focusNode: _focusNode,
-      decoration: const InputDecoration(
+
+      // 🔥 Prevents OS from autofilling mm/dd/yyyy
+      autofillHints: const ['dd/MM/yyyy'],
+
+      keyboardType: TextInputType.datetime,
+
+      // 🔥 Forces dd/MM/yyyy suggestions, not US format
+      textInputAction: TextInputAction.done,
+
+      // 🔥 Restrict input + auto-insert "/"
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(r'[0-9/]')),
+        _DDMMYYYYFormatter(),
+      ],
+
+      decoration: InputDecoration(
         labelText: 'Warranty Date',
-        hintText: 'Select warranty date',
+        hintText: 'dd/mm/yyyy',   // 🔥 Fixes the hint
+        suffixIcon: widget.controller.text.isNotEmpty
+            ? IconButton(
+          icon: const Icon(Icons.clear),
+          onPressed: () {
+            widget.controller.clear();
+            setState(() {});
+          },
+        )
+            : const Icon(Icons.calendar_today),
       ),
-      readOnly: true,
+
+      // 🔥 Prevents Android/iOS from suggesting mm/dd/yyyy
+      smartDashesType: SmartDashesType.disabled,
+      smartQuotesType: SmartQuotesType.disabled,
+
+      // 🔥 Avoid localization to US format
+      enableSuggestions: false,
+      readOnly: false, // allow typing in dd/mm/yyyy
     );
   }
 }
 
+/// 🔥 Custom formatter to force dd/mm/yyyy (auto-add slash)
+class _DDMMYYYYFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    var text = newValue.text.replaceAll('/', '');
+
+    if (text.length > 8) return oldValue;
+
+    String formatted = '';
+    for (int i = 0; i < text.length; i++) {
+      formatted += text[i];
+      if (i == 1 || i == 3) formatted += '/';
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}

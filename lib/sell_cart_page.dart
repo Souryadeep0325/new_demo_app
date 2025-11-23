@@ -239,7 +239,7 @@ class _SellCartPageState extends State<SellCartPage> {
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.edit_note, color: Colors.black),
-                                  tooltip: "Remove Item",
+                                  tooltip: "Edit Item ",
                                   onPressed: () => showEditCartDialog(context, item['id'],detail['id'],item["itemId"]),
                                 ),
                                 IconButton(

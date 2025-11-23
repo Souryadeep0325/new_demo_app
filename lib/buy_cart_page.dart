@@ -269,8 +269,7 @@ class _BuyCartPageState extends State<BuyCartPage> {
                     border: TableBorder.all(
                         color: Colors.grey.shade300, width: 1),
                     columns: const [
-                      DataColumn(label: Text("Item ID")),
-                      DataColumn(label: Text("Serial No")),
+
                       DataColumn(label: Text("IMEI")),
                       DataColumn(label: Text("Product")),
                       DataColumn(label: Text("Brand")),
@@ -283,8 +282,7 @@ class _BuyCartPageState extends State<BuyCartPage> {
                     rows: cartItems.expand((item) {
                       return (item['details'] as List).map((detail) {
                         return DataRow(cells: [
-                          DataCell(Text(item['itemId'].toString())),
-                          DataCell(Text(detail['itemSerialNo'] ?? '-')),
+
                           DataCell(Text(detail['imeiNo'] ?? '-')),
                           DataCell(Text(detail['productName'] ?? '-')),
                           DataCell(Text(detail['brand'] ?? '-')),
@@ -298,7 +296,7 @@ class _BuyCartPageState extends State<BuyCartPage> {
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.edit_note, color: Colors.black),
-                                  tooltip: "Remove Item",
+                                  tooltip: "Edit Item",
                                   onPressed: () => showEditCartDialog(context, item['id'],detail['id'],item["itemId"]),
                                 ),
                                 IconButton(
@@ -669,7 +667,7 @@ class _BillingFormDialogState extends State<_BillingFormDialog> {
                   child: DropdownButtonFormField<String>(
                     decoration: const InputDecoration(labelText: 'Document Type'),
                     initialValue: _formData['documentType'],
-                    items: ['DRIVING_LICENSE', 'VOTER_ID', 'PAN', 'AADHAAR', 'PASSPORT']
+                    items: ['DRIVING_LICENSE', 'VOTER_ID', 'PAN', 'AADHAAR', 'PASSPORT','NO DOC']
                         .map((type) => DropdownMenuItem(
                       value: type,
                       child: Text(type),

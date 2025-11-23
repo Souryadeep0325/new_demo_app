@@ -12,6 +12,8 @@ dependencies:
   flutter:
     sdk: flutter
 
+  excel: ^2.1.0
+
   # Core packages
   http: ^1.2.1
   intl: ^0.18.0
@@ -32,12 +34,11 @@ dependencies:
   url_launcher: ^6.0.9
   connectivity_plus: ^2.3.0
 
-  # PDF and printing
-#  pdf: ^3.10.7
-  printing: ^5.12.0
 
-  # ❌ REMOVE if not being used or conflicting:
-#  pdf_widget_wrapper: '>=1.0.0 <2.0.0'
+  printing: ^5.13.1
+  pdf: ^3.11.3
+
+
 
 dev_dependencies:
   flutter_test:
@@ -49,3 +50,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/images.png

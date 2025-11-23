@@ -6,9 +6,11 @@ import 'package:news_app/sell_cart_page.dart';
 import 'package:provider/provider.dart';
 import 'auth.dart';
 import 'widgets/custom_dialog.dart';
-import 'dart:typed_data';
+import 'package:excel/excel.dart';
 import 'dart:html' as html;
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 final List<String> allBrands = [
   'Alcatel', 'Allview', 'Amazon', 'Amoi', 'Apple', 'Archos', 'Asus', 'AT&T', 'Benefon',
   'BenQ', 'BenQ-Siemens', 'Bird', 'BlackBerry', 'Blackview', 'BLU', 'Bosch', 'BQ', 'Casio',
@@ -25,6 +27,7 @@ final List<String> allBrands = [
   'Toshiba', 'Ulefone', 'Umidigi', 'Unnecto', 'Vertu', 'verykool', 'vivo', 'VK Mobile',
   'Vodafone', 'Wiko', 'WND', 'XCute', 'Xiaomi', 'XOLO', 'Yezz', 'Yota', 'YU', 'ZTE'
 ];
+List<dynamic> allTicketsFinal = [];
 class TicketListingPage extends StatefulWidget {
   final String status;
   final String? title;
@@ -64,11 +67,50 @@ class _TicketListingPageState extends State<TicketListingPage> {
     }
    ;
   }
-  // Future<void> sortTapped() async {
-  //
-  //   setState(() => isLoading = true);
-  //
-  // }
+
+
+
+  void exportExcelWeb(List<Map<String, dynamic>> tickets) {
+    var excel = Excel.createExcel();
+    Sheet sheetObject = excel['Tickets'];
+
+    // Add header
+    sheetObject.appendRow([
+      "Ticket ID",
+      "Status",
+      "Item ID",
+      "Serial No",
+      "RAM/ROM",
+      "Color Specs",
+      "Comment",
+      "Invoice Date",
+      "Invoice Number"
+    ]);
+
+    // Add data rows
+    for (var ticket in tickets) {
+      sheetObject.appendRow([
+        ticket['ticketId'],
+        ticket['ticketStatus'],
+        ticket['itemId'],
+        ticket['itemSerialNo'],
+        ticket['ramRomSpecs'] ?? "",
+        ticket['colorSpecs'] ?? "",
+        ticket['comment'] ?? "",
+        ticket['invoiceDto']?['invoiceDate'] ?? "",
+        ticket['invoiceDto']?['invoiceNumber'] ?? ""
+      ]);
+    }
+
+    var fileBytes = excel.encode();
+
+    // Trigger browser download
+    final content = base64Encode(fileBytes!);
+    final anchor = html.AnchorElement(
+        href: "data:application/octet-stream;base64,$content")
+      ..setAttribute("download", "tickets.xlsx")
+      ..click();
+  }
 
   Future<void> fetchTickets() async {
 
@@ -96,6 +138,7 @@ class _TicketListingPageState extends State<TicketListingPage> {
       });
       if (response.statusCode == 200) {
         allTickets = json.decode(response.body);
+        allTicketsFinal = allTickets;
         reverseAllTickets = allTickets.reversed.toList();
 
       } else {
@@ -119,81 +162,130 @@ class _TicketListingPageState extends State<TicketListingPage> {
       ),
     );
   }
-  Future<void> showSoldTicketInfo(int ticketId) async {
-    final authStore = Provider.of<AuthStore>(context, listen: false);
-    final uri = Uri.parse('https://api.abcoped.shop/api/ticket/check-ticket/$ticketId');
 
-    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
 
-    try {
-      final response = await http.get(uri, headers: {
-        'Authorization': 'Bearer ${authStore.token}',
-        'Accept': 'application/json',
-      });
 
-      Navigator.pop(context);
+  Widget buildBillDetailsWidget(Map<String, dynamic> bill, Map<String, dynamic> ticket, Function generateBillPdf) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Billing Details:',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        Text('Bill Number: ${bill['billNumber']}'),
+        Text('Bill Date: ${bill['billDate']}'),
+        Text('Customer Name: ${bill['customerName']}'),
+        Text('Phone: ${bill['phoneNumber']}'),
+        Text('GST ID: ${bill['gstId'] ?? 'N/A'}'),
+        Text('Place of Sale: ${bill['placeOfSale']}'),
+        Text('Profit: ₹${bill['profit'] ?? 'N/A'}'),
+        const SizedBox(height: 10),
 
-      if (response.statusCode == 200) {
-        final ticket = json.decode(response.body);
-        final invoice = ticket['invoiceDto'];
+        Text('Payments:', style: const TextStyle(fontWeight: FontWeight.bold)),
+        ...List<Widget>.from((bill['payments'] ?? []).map<Widget>((pmt) {
+          return Text(
+            '• ${pmt['modeOfPayment']} - ₹${pmt['amount']}'
+                '${pmt['transactionId'] != null ? ' (Txn: ${pmt['transactionId']})' : ''}'
+                '${pmt['paidAt'] != null ? ' on ${pmt['paidAt']}' : ''}',
+          );
+        })),
 
-        final totalCost = (ticket['refurbishedCost'] ?? 0) + (ticket['acquisitionCost'] ?? 0);
+        const Divider(),
 
-        showDialog(
-          context: context,
-          builder: (_) => CustomDialog(
-            title: 'Ticket & Invoice Details',
-            maxWidth: 600,
-            content: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Ticket ID: ${ticket['ticketId']}'),
-                  Text('Product Name: ${ticket['productName']}'),
-                  Text('Status: ${ticket['ticketStatus']}'),
-                  Text('Brand: ${ticket['brand']}'),
-                  // Text('Acquisition Cost: ₹${ticket['acquisitionCost']}'),
-                  // Text('Refurbished Cost: ₹${ticket['refurbishedCost'] ?? 0}'),
-                  if(invoice != null)Text('Invoice Date: ${invoice['invoiceDate'] ?? 'N/A'}'),
-                  Text('Total Cost: ₹$totalCost'),
-                  const Divider(),
-                  if ((invoice != null && widget.status == 'LISTED')||
-                      (invoice != null && widget.status == 'Inventory')||
-                      (invoice != null && widget.status == '') ) ...[
-                    Text('Invoice Number: ${invoice['invoiceNumber']}'),
-                    Text('Customer Name: ${invoice['customerName']}'),
-                    Text('Phone: ${invoice['phoneNumber']}'),
-                    Text('GST No: ${invoice['gstNumber']}'),
-                    Text('Product Purchase Type: ${invoice['productPurchaseType']}'),
-                    const SizedBox(height: 10),
-                    Text('Payments:', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ...List<Widget>.from(invoice['payments'].map<Widget>((payment) {
-                      return Text(
-                        '• ${payment['modeOfPayment']} - ₹${payment['amount']}'
-                            '${payment['transactionId'] != null ? ' (Txn: ${payment['transactionId']})' : ''}'
-                            '${payment['paidAt'] != null ? ' on ${payment['paidAt']}' : ''}',
-                      );
-                    })),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => generateInvoicePdf(ticket,'Invoice'),
-                      child: const Text('Download Invoice PDF'),
-                    ),
-                  ]
-                ],
-              ),
-            ),
-            actions: [DialogButton(label: 'Close', onPressed: () => Navigator.pop(context))],
-          ),
-        );
-      } else {
-        showError('Failed to fetch ticket details. Status: ${response.statusCode}');
-      }
-    } catch (e) {
-      Navigator.pop(context);
-      showError('Error fetching ticket details: $e');
-    }
+        Text('Products:', style: const TextStyle(fontWeight: FontWeight.bold)),
+        ...List<Widget>.from((bill['products'] ?? []).map<Widget>((prod) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('• ${prod['productName']} (${prod['brand']})'),
+              Text('  RAM/ROM: ${prod['ramRomSpecs'] ?? '-'}'),
+              Text('  IMEI: ${prod['imeiNo']}  | Serial: ${prod['serialNo']}'),
+              Text('  Warranty: ${prod['warranty']}'),
+            ],
+          );
+        })),
+
+        const SizedBox(height: 16),
+
+        ElevatedButton(
+          onPressed: () => generateBillPdf(ticket, 'Bill'),
+          child: const Text('Download Bill PDF'),
+        ),
+      ],
+    );
   }
+
+
+
+  Widget buildInvoiceDetailsWidget(
+      Map<String, dynamic> ticket,
+      Map<String, dynamic>? invoice,
+      Function generateInvoicePdf,
+      ) {
+    if (invoice == null || invoice.isEmpty) {
+      return const Text('No billing or invoice data found.');
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Invoice Details:',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        Text('Invoice Number: ${invoice['invoiceNumber']}'),
+        Text('Invoice Date: ${invoice['invoiceDate']}'),
+        Text('Customer Name: ${invoice['customerName']}'),
+        Text('Phone: ${invoice['phoneNumber']}'),
+        Text('GST ID: ${invoice['gstId'] ?? 'N/A'}'),
+        Text('Product Purchase Type: ${invoice['productPurchaseType'] ?? 'N/A'}'),
+        const SizedBox(height: 10),
+
+        Text('Payments:', style: const TextStyle(fontWeight: FontWeight.bold)),
+        ...List<Widget>.from((invoice['payments'] ?? []).map<Widget>((pmt) {
+          return Text(
+            '• ${pmt['modeOfPayment']} - ₹${pmt['amount']}'
+                '${pmt['transactionId'] != null ? ' (Txn: ${pmt['transactionId']})' : ''}'
+                '${pmt['paidAt'] != null ? ' on ${pmt['paidAt']}' : ''}',
+          );
+        })),
+
+        const SizedBox(height: 16),
+
+        ElevatedButton(
+          onPressed: () => generateInvoicePdf(ticket, 'Bill'),
+          child: const Text('Download Invoice PDF'),
+        ),
+      ],
+    );
+  }
+
+
+  Widget detailText(String label, String? value) {
+    if (value == null || value.isEmpty) return SizedBox.shrink();
+
+    return RichText(
+      text: TextSpan(
+        text: '$label: ',
+        style: TextStyle(
+          color: Colors.black,
+          fontWeight: FontWeight.bold,
+        ),
+        children: [
+          TextSpan(
+            text: value,
+            style: TextStyle(
+              color: Colors.black,
+              fontWeight: FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
 
 
   Future<void> showSoldTicketBill(int ticketId) async {
@@ -225,75 +317,46 @@ class _TicketListingPageState extends State<TicketListingPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Ticket ID: ${ticket['ticketId']}'),
-                  Text('Product: ${ticket['productName']}'),
-                  Text('Status: ${ticket['ticketStatus']}'),
-                  Text('Brand: ${ticket['brand']}'),
-                  Text('Acquisition Cost: ₹${ticket['acquisitionCost']}'),
-                  Text('Refurbished Cost: ₹${ticket['refurbishedCost'] ?? 0}'),
-                  Text('Total Cost: ₹$totalCost'),
+                  // Row(
+                  //   children: [
+                  //     Text('Ticket ID:', style: TextStyle(fontWeight: FontWeight.bold)),
+                  //     Text(' ${ticket['ticketId']}')
+                  //   ],
+                  // ),
+                  // Text('Product: ${ticket['productName']}'),
+                  // Text('Status: ${ticket['ticketStatus']}'),
+                  // Text('Brand: ${ticket['brand']}'),
+                  // Text('Acquisition Cost: ₹${ticket['acquisitionCost']}'),
+                  // Text('Refurbished Cost: ₹${ticket['refurbishedCost'] ?? 0}'),
+                  // Text('Total Cost: ₹$totalCost'),
+                  detailText("Ticket ID", "${ticket['ticketId']}"),
+                  detailText("Product", ticket['productName']),
+                  detailText("Status", ticket['ticketStatus']),
+                  detailText("Brand", ticket['brand']),
+                  detailText("Acquisition Cost", "₹${ticket['acquisitionCost']}"),
+                  detailText("Refurbished Cost", "₹${ticket['refurbishedCost'] ?? 0}"),
+                  detailText("Total Cost", "₹$totalCost"),
+
+                  // New optional fields
+                  detailText("Battery Health", ticket['batteryHealth']),
+                  detailText("Warranty", ticket['warranty']),
+                  detailText("Box Included", ticket['boxFlag'] == "Y" ? "Yes" : "No"),
+                  detailText("Charger Included", ticket['chargerFlag'] == "N" ? "No" : "Yes"),
+                  detailText("Sealed", ticket['sealedFlag'] == "Y" ? "Yes" : "No"),
+                  detailText("Invoice Included", ticket['invoiceFlag'] == "Y" ? "Yes" : "No"),
+                  detailText("RAM/ROM", ticket['ramRomSpecs']),
+                  detailText("Color", ticket['colorSpecs']),
+
+                  SingleChildScrollView(
+                    child: buildTicketCommentsWidget(ticket['comment']),
+                  ),
                   const Divider(),
 
-                  if (bill != null) ...[
-                    Text('Bill Number: ${bill['billNumber']}'),
-                    Text('Bill Date: ${bill['billDate']}'),
-                    Text('Customer Name: ${bill['customerName']}'),
-                    Text('Phone: ${bill['phoneNumber']}'),
-                    Text('GST ID: ${bill['gstId'] ?? 'N/A'}'),
-                    Text('Place of Sale: ${bill['placeOfSale']}'),
-                    Text('Profit: ₹${bill['profit'] ?? 'N/A'}'),
-                    const SizedBox(height: 10),
-                    Text('Payments:', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ...List<Widget>.from(bill['payments'].map<Widget>((pmt) {
-                      return Text(
-                        '• ${pmt['modeOfPayment']} - ₹${pmt['amount']}'
-                            '${pmt['transactionId'] != null ? ' (Txn: ${pmt['transactionId']})' : ''}'
-                            '${pmt['paidAt'] != null ? ' on ${pmt['paidAt']}' : ''}',
-                      );
-                    })),
-                    const Divider(),
-                    Text('Products:', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ...List<Widget>.from(bill['products'].map<Widget>((prod) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('• ${prod['productName']} (${prod['brand']})'),
-                          Text('  RAM/ROM: ${prod['ramRomSpecs'] ?? '-'}'),
-                          Text('  IMEI: ${prod['imeiNo']}  | Serial: ${prod['serialNo']}'),
-                          Text('  Warranty: ${prod['warranty']}'),
-                        ],
-                      );
-                    })),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => generateInvoicePdf(ticket,'Bill'),
-                      child: const Text('Download Bill PDF'),
-                    ),
-                  ] else if (invoice != null) ...[
-                    Text('Invoice Number: ${invoice['invoiceNumber']}'),
-                    Text('Invoice Date: ${invoice['invoiceDate']}'),
-                    Text('Customer Name: ${invoice['customerName']}'),
-                    Text('Phone: ${invoice['phoneNumber']}'),
-                    Text('GST ID: ${invoice['gstId']}'),
-                    Text('Product Purchase Type: ${invoice['productPurchaseType']}'),
-                    const SizedBox(height: 10),
-                    Text('Payments:', style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ...List<Widget>.from(invoice['payments'].map<Widget>((pmt) {
-                      return Text(
-                        '• ${pmt['modeOfPayment']} - ₹${pmt['amount']}'
-                            '${pmt['transactionId'] != null ? ' (Txn: ${pmt['transactionId']})' : ''}'
-                            '${pmt['paidAt'] != null ? ' on ${pmt['paidAt']}' : ''}',
-                      );
-                    })),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () => generateInvoicePdf(ticket,'Bill'),
-                      child: const Text('Download Invoice PDF'),
-                    ),
-                  ] else ...[
-                    const Text('No billing or invoice data found.'),
-                  ],
-                ],
+                  if(bill != null && (widget.status == 'SOlD' || widget.status == '') )
+                    buildBillDetailsWidget(bill, ticket, generateBillPdf),
+                    if (invoice != null && (widget.status == "" || widget.status == 'LISTED' || widget.status == 'Inventory'))
+        buildInvoiceDetailsWidget(ticket, invoice, generateInvoicePdf),
+    ],
               ),
             ),
             actions: [DialogButton(label: 'Close', onPressed: () => Navigator.pop(context))],
@@ -312,31 +375,50 @@ class _TicketListingPageState extends State<TicketListingPage> {
       return const Center(child: Text("No tickets found."));
     }
 
+
     return Center(
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
           headingRowColor: MaterialStateProperty.all(Colors.grey[200]),
-          columns: const [
-            DataColumn(label: Text("Ticket ID")),
-            DataColumn(label: Text("Product Name")),
-            DataColumn(label: Text("Status")),
-            DataColumn(label: Text("Cost")),
-            DataColumn(label: Text("Actions")),
+          columns: [
+            const DataColumn(label: Text("Ticket ID")),
+            const DataColumn(label: Text("Product Name")),
+            const DataColumn(label: Text("Status")),
+            const DataColumn(label: Text("Cost")),
+            if(widget.status == 'LISTED' || widget.status == 'QC' || widget.status == 'Factory')
+              const DataColumn(label: Text("Refurbishment Cost")),
+
+            const DataColumn(label: Text("Invoice Date")),
+
+            if (widget.status == 'SOLD'|| widget.status == 'Inventory'|| widget.status == '' )
+              const DataColumn(label: Text("Bill Date")),
+
+            const DataColumn(label: Text("Actions")),
           ],
           rows: _isSortedAsc ? allTickets.map((ticket)  {
+
             final cost = (ticket['acquisitionCost'] ?? 0).toString();
+            final totalCost = (ticket['refurbishedCost'] ?? 0).toString();
+            final invoice = ticket['invoiceDto'];
+            final bill = ticket['billResponseDto'];
             return DataRow(cells: [
               DataCell(Text(ticket['ticketId'].toString())),
               DataCell(Text(ticket['productName'] ?? 'N/A')),
               DataCell(Text(ticket['ticketStatus'] ?? 'N/A')),
               DataCell(Text("₹$cost")),
+
+              if(widget.status == 'LISTED' || widget.status == 'QC' || widget.status == 'Factory')
+                  DataCell(Text("₹$totalCost")) ,
+              invoice == null || invoice.isEmpty? const DataCell(Text("")):DataCell(Text("${invoice['invoiceDate']}")),
+              if(widget.status == 'SOLD' || widget.status == 'Inventory'|| widget.status == '')
+                  (bill == null || bill.isEmpty) ? const DataCell(Text("")):DataCell(Text("${bill['billDate']}")),
               DataCell(Row(
                 children: [
                   IconButton(
                     icon: const Icon(Icons.visibility),
                     tooltip: "View Ticket",
-                    onPressed: () => showSoldTicketInfo(ticket['ticketId']),
+                    onPressed: () => showSoldTicketBill(ticket['ticketId']),
                   ),
                   if (ticket['ticketStatus'] == 'SOLD')
                     IconButton(
@@ -354,7 +436,7 @@ class _TicketListingPageState extends State<TicketListingPage> {
                       onPressed: () => confirmStatusChange(
                           ticket['ticketId'], ticket['status'] ?? ''),
                     ),
-                  if (ticket['ticketStatus'] == 'LISTED')
+                  if (widget.status == 'LISTED')
                     IconButton(
                       icon: const Icon(Icons.receipt_long),
                       tooltip: 'Create Bill',
@@ -378,19 +460,28 @@ class _TicketListingPageState extends State<TicketListingPage> {
             ]);
           }).toList() : reverseAllTickets.map((ticket)  {
             final cost = (ticket['acquisitionCost'] ?? 0).toString();
+            final totalCost = (ticket['refurbishedCost'] ?? 0).toString();
+            final invoice = ticket['invoiceDto'];
+            final bill = ticket['billResponseDto'];
             return DataRow(cells: [
               DataCell(Text(ticket['ticketId'].toString())),
               DataCell(Text(ticket['productName'] ?? 'N/A')),
               DataCell(Text(ticket['ticketStatus'] ?? 'N/A')),
               DataCell(Text("₹$cost")),
+              if(widget.status == 'LISTED' || widget.status == 'QC' || widget.status == 'Factory')
+              DataCell(Text("₹$totalCost")),
+              invoice == null || invoice.isEmpty ? DataCell(Text("")):DataCell(Text("${invoice['invoiceDate']}")),
+               if(ticket['ticketStatus'] == 'SOLD' || widget.status == 'Inventory'|| widget.status == '')
+               (bill == null || bill.isEmpty) ? DataCell(Text("")):DataCell(Text("${bill['billDate']}")),
+
               DataCell(Row(
                 children: [
                   IconButton(
                     icon: const Icon(Icons.visibility),
                     tooltip: "View Ticket",
-                    onPressed: () => showSoldTicketInfo(ticket['ticketId']),
+                    onPressed: () => showSoldTicketBill(ticket['ticketId']),
                   ),
-                  if (ticket['ticketStatus'] == 'SOLD')
+                  if (widget.status == 'SOLD')
                     IconButton(
                       icon: const Icon(Icons.receipt_rounded),
                       tooltip: "View Bill",
@@ -406,7 +497,7 @@ class _TicketListingPageState extends State<TicketListingPage> {
                       onPressed: () => confirmStatusChange(
                           ticket['ticketId'], ticket['status'] ?? ''),
                     ),
-                  if (ticket['ticketStatus'] == 'LISTED')
+                  if (widget.status == 'LISTED')
                     IconButton(
                       icon: const Icon(Icons.receipt_long),
                       tooltip: 'Create Bill',
@@ -450,13 +541,6 @@ class _TicketListingPageState extends State<TicketListingPage> {
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Current Status: $currentStatus'),
-            // DropdownButtonFormField<String>(
-            //   value: selectedStatus,
-            //   items: statusOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-            //   onChanged: (value) => selectedStatus = value,
-            //   decoration: const InputDecoration(labelText: 'New Status'),
-            // ),
             StatusDropdown(
               currentStatus: widget.status,
               value: selectedStatus,
@@ -593,39 +677,59 @@ class _TicketListingPageState extends State<TicketListingPage> {
               child: const Text('Search'),
             ),
             const SizedBox(width: 8),
-            IconButton(
-              icon: Icon(
-                _isSortedAsc ? Icons.arrow_upward : Icons.arrow_downward,
-                color: Colors.blue, // keep your blue theme
-              ),
-              onPressed: () {
-                // Toggle the sort order
-                setState(() {
-                  _isSortedAsc = !_isSortedAsc;
-                });
-
-                // Call your search/sort function
-                //sortTapped();
-              },
-            ),
-            const SizedBox(width: 8),
-            TextButton(
-              onPressed: () {
-                ticketIdController.clear();
-                brandController.clear();
-                productNameController.clear();
-                costMinController.clear();
-                costMaxController.clear();
-                tempInvoiceDateFrom = null;
-                tempInvoiceDateTo = null;
-                invoiceDateFrom = null;
-                invoiceDateTo = null;
-                fetchTickets();
-              },
-              child: const Text('Clear'),
-            ),
           ],
         ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+          IconButton(
+            tooltip: 'Sort By Date',
+            icon: Icon(
+              _isSortedAsc ? Icons.arrow_upward : Icons.arrow_downward,
+              color: Colors.blue, // keep your blue theme
+            ),
+            onPressed: () {
+              // Toggle the sort order
+              setState(() {
+                _isSortedAsc = !_isSortedAsc;
+              });
+
+              // Call your search/sort function
+              //sortTapped();
+            },
+          ),
+          IconButton(
+            tooltip: 'Export To Excel',
+            icon: const Icon(
+              Icons.send,
+              color: Colors.blue, // keep your blue theme
+            ),
+            onPressed: () async {
+              // Suppose this is your API response
+              List<Map<String, dynamic>> apiResponse =
+              allTicketsFinal.map((e) => e as Map<String, dynamic>).toList(); // your JSON data here
+              exportExcelWeb(apiResponse);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Excel exported successfully!')),
+              );
+            },
+          ),
+          TextButton(
+            onPressed: () {
+              ticketIdController.clear();
+              brandController.clear();
+              productNameController.clear();
+              costMinController.clear();
+              costMaxController.clear();
+              tempInvoiceDateFrom = null;
+              tempInvoiceDateTo = null;
+              invoiceDateFrom = null;
+              invoiceDateTo = null;
+              fetchTickets();
+            },
+            child: const Text('Clear'),
+          ),
+        ],)
       ],
     );
   }
@@ -664,41 +768,7 @@ class _TicketListingPageState extends State<TicketListingPage> {
   void clearInvoiceFrom() => setState(() => invoiceDateFrom = null);
   void clearInvoiceTo() => setState(() => invoiceDateTo = null);
 
-  Widget buildTicketCard(dynamic ticket) => Card(
-    margin: const EdgeInsets.symmetric(vertical: 8),
-    child: ListTile(
-      title: Text('${ticket['productName'] ?? 'Unnamed Product'}', style: const TextStyle(fontWeight: FontWeight.bold)),
-      subtitle: Text('Status: ${ticket['ticketStatus'] ?? 'N/A'}\nProduct Cost: ₹${ticket['acquisitionCost'] ?? 'N/A'}'),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(icon: const Icon(Icons.visibility), onPressed: () => showSoldTicketInfo(ticket['ticketId'])),
-          if (ticket['ticketStatus'] == 'SOLD')IconButton(icon: const Icon(Icons.receipt_rounded), onPressed: () => showSoldTicketBill(ticket['ticketId'])),
-          if ((widget.status =='QC' ))IconButton(icon: const Icon(Icons.edit), onPressed: () => confirmStatusChange(ticket['ticketId'], ticket['status'] ?? '')),
-          if ((widget.status =='Factory' ))IconButton(icon: const Icon(Icons.edit), onPressed: () => confirmStatusChange(ticket['ticketId'], ticket['status'] ?? '')),
-          if ((widget.status =='Scraped' ))IconButton(icon: const Icon(Icons.edit), onPressed: () => confirmStatusChange(ticket['ticketId'], ticket['status'] ?? '')),
-          if ((widget.status =='LISTED' ))IconButton(icon: const Icon(Icons.edit), onPressed: () => confirmStatusChange(ticket['ticketId'], ticket['status'] ?? '')),
 
-          if (ticket['ticketStatus'] == 'LISTED')
-            IconButton(
-              icon: const Icon(Icons.receipt_long),
-              tooltip: 'Create Bill',
-              onPressed: () => addToSellCart(
-                ticketIds: [ticket['ticketId']],
-                authToken: Provider.of<AuthStore>(context, listen: false).token ?? '',
-              ).then((success) {
-                if (success) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to Sell Cart')));
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to add to Sell Cart')));
-                }
-              }
-            ),
-            )
-        ],
-      ),
-    ),
-  );
 
   @override
   Widget build(BuildContext context) {
@@ -861,53 +931,403 @@ class _TicketListingPageState extends State<TicketListingPage> {
     );
   }
 
+  List<Map<String, String>> parseTicketComments(String? commentText) {
+    if (commentText == null || commentText.trim().isEmpty || commentText == "null") {
+      return [];
+    }
+
+    final commentPattern = RegExp(
+      r'Ticket has been updated to status (.*?) on (.*?) at (.*?)\.\s*Comment added by (.*?) : (.*?)(?=Ticket has been updated|$)',
+      dotAll: true,
+    );
+
+    final matches = commentPattern.allMatches(commentText);
+    return matches.map((m) {
+      return {
+        'status': m.group(1)?.trim() ?? '',
+        'date': m.group(2)?.trim() ?? '',
+        'time': m.group(3)?.trim() ?? '',
+        'user': m.group(4)?.trim() ?? '',
+        'comment': m.group(5)?.trim() ?? '',
+      };
+    }).toList();
+  }
+
+  Widget buildTicketCommentsWidget(String? commentText) {
+    final comments = parseTicketComments(commentText);
+
+    if (comments.isEmpty) {
+      return const Text('No comments available.');
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Ticket Comments:',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 8),
+        ...comments.map((c) {
+          return Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            child: Padding(
+              padding: const EdgeInsets.all(10.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Status: ${c['status']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text('Date: ${c['date']} at ${c['time']}'),
+                  Text('By: ${c['user']}'),
+                  const SizedBox(height: 4),
+                  Text('Comment: ${c['comment']}'),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
 
 
-  void generateInvoicePdf(Map<String, dynamic> ticket, String journey) async {
+
+
+  Future<void> generateBillPdf(Map<String, dynamic> ticket, String type) async {
+    // Use billResponseDto for main info
+    final bill = ticket['billResponseDto'] ?? ticket;
+    // Use invoiceDto if exists
+    final invoice = ticket['invoiceDto'];
+
     final pdf = pw.Document();
-    final invoice = ticket['invoiceDto'] ?? {};
+
+    final logo = await imageFromAssetBundle('assets/images.png'); // replace with your asset
+
+    final products = (invoice?['products'] ?? bill['products'] ?? []) as List<dynamic>;
+    pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(24),
+          build: (context) => [
+          // Header
+          pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: pw.CrossAxisAlignment.center,
+          children: [
+            pw.Image(logo, width: 80),
+            pw.Text(
+              '$type Invoice',
+              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+            ),
+          ],
+        ),
+        pw.SizedBox(height: 16),
+
+        // Bill / Customer Info
+        pw.Divider(),
+        pw.Text('Bill Information', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 8),
+
+        pw.Text('Bill Number: ${bill['billNumber'] ?? '-'}'),
+        pw.Text('Bill Date: ${bill['billDate'] ?? '-'}'),
+        pw.Text('Customer Name: ${bill['customerName'] ?? '-'}'),
+        pw.Text('Phone: ${bill['phoneNumber'] ?? '-'}'),
+        pw.Text('GST ID: ${bill['gstId'] ?? '-'}'),
+        pw.Text('Place of Sale: ${bill['placeOfSale'] ?? '-'}'),
+        pw.Text('Profit: ₹${bill['profit'] != null ? bill['profit'].toStringAsFixed(2) : '-'}'),
+
+        pw.SizedBox(height: 12),
+
+        // Payments Section
+        pw.Text('Payments', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 8),
+
+        if ((invoice?['payments'] ?? bill['payments'] ?? []).isEmpty)
+    pw.Text('No payment records found.')
+    else
+    pw.Table.fromTextArray(
+    headers: ['Mode', 'Amount', 'Txn ID', 'Paid At'],
+    headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+    headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+    cellAlignment: pw.Alignment.centerLeft,
+
+    data: (bill['payments'] ?? [])
+        .map<List<String>>((pmt) => [
+    pmt['modeOfPayment']?.toString() ?? '-',
+    pmt['amount'] != null ? '₹${(pmt['amount'] as num).toStringAsFixed(2)}' : '-',
+    pmt['transactionId']?.toString() ?? '-',
+    pmt['paidAt']?.toString() ?? '-',
+    ])
+        .toList(),
+    ),
+
+    pw.SizedBox(height: 16),
+
+    // Products Section
+    pw.Text('Products', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+    pw.SizedBox(height: 8),
+
+    if (products.isEmpty)
+    pw.Text('No products found.')
+    else
+    pw.Table.fromTextArray(
+    headers: ['Product', 'Brand', 'RAM/ROM', 'IMEI', 'Serial', 'Warranty'],
+    headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+    headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+    cellAlignment: pw.Alignment.centerLeft,
+    data: (products as List<dynamic>)
+        .map<List<String>>((prod) => [
+    prod['productName']?.toString() ?? '-',
+    prod['brand']?.toString() ?? '-',
+    prod['ramRomSpecs']?.toString() ?? '-',
+    prod['imeiNo']?.toString() ?? '-',
+    prod['serialNo']?.toString() ?? '-',
+    prod['warranty']?.toString() ?? '-',
+    ])
+        .toList(),
+    ),
+
+    pw.SizedBox(height: 20),
+
+    // Footer
+    pw.Divider(),
+    pw.Center(
+    child: pw.Text(
+    'Thank you for your business!',
+    style: pw.TextStyle(fontStyle: pw.FontStyle.italic, color: PdfColors.grey600),
+    ),
+    ),
+    ],
+    ),
+    );
+
+    await Printing.layoutPdf(
+    onLayout: (PdfPageFormat format) async => pdf.save(),
+    );
+  }
+
+  // Future<void> generateBillPdf(Map<String, dynamic> ticket, String type) async {
+  //   final bill = ticket['bill'] ?? ticket;
+  //
+  //   final pdf = pw.Document();
+  //
+  //   // Load your logo (you can replace this with a real asset or network image)
+  //   final logo = await imageFromAssetBundle('assets/images.png'); // Add logo.png to assets folder
+  //
+  //   pdf.addPage(
+  //     pw.MultiPage(
+  //       pageFormat: PdfPageFormat.a4,
+  //       margin: const pw.EdgeInsets.all(24),
+  //       build: (context) => [
+  //         // Header with logo and title
+  //         pw.Row(
+  //           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+  //           crossAxisAlignment: pw.CrossAxisAlignment.center,
+  //           children: [
+  //             pw.Image(logo, width: 80),
+  //             pw.Text(
+  //               '$type Invoice',
+  //               style: pw.TextStyle(
+  //                 fontSize: 24,
+  //                 fontWeight: pw.FontWeight.bold,
+  //               ),
+  //             ),
+  //           ],
+  //         ),
+  //         pw.SizedBox(height: 16),
+  //
+  //         // Customer & Bill Info
+  //         pw.Divider(),
+  //         pw.Text('Bill Information', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+  //         pw.SizedBox(height: 8),
+  //
+  //         pw.Text('Bill Number: ${bill['billNumber']}'),
+  //         pw.Text('Bill Date: ${bill['billDate']}'),
+  //         pw.Text('Customer Name: ${bill['customerName']}'),
+  //         pw.Text('Phone: ${bill['phoneNumber']}'),
+  //         pw.Text('GST ID: ${bill['gstId'] ?? 'N/A'}'),
+  //         pw.Text('Place of Sale: ${bill['placeOfSale']}'),
+  //         pw.Text('Profit: ₹${bill['profit'] ?? 'N/A'}'),
+  //
+  //         pw.SizedBox(height: 12),
+  //
+  //         // Payments Section
+  //         pw.Text('Payments', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+  //         pw.SizedBox(height: 8),
+  //
+  //         if ((bill['payments'] ?? []).isEmpty)
+  //           pw.Text('No payment records found.')
+  //         else
+  //           pw.Table.fromTextArray(
+  //             headers: ['Mode', 'Amount', 'Txn ID', 'Paid At'],
+  //             headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+  //             headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+  //             cellAlignment: pw.Alignment.centerLeft,
+  //             data: List<List<String>>.from((bill['payments'] ?? []).map((pmt) => [
+  //               pmt['modeOfPayment'] ?? '-',
+  //               '₹${pmt['amount'] ?? ''}',
+  //               pmt['transactionId'] ?? '-',
+  //               pmt['paidAt'] ?? '-',
+  //             ])),
+  //           ),
+  //
+  //         pw.SizedBox(height: 16),
+  //
+  //         // Products Section
+  //         pw.Text('Products', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+  //         pw.SizedBox(height: 8),
+  //
+  //         if ((bill['products'] ?? []).isEmpty)
+  //           pw.Text('No products found.')
+  //         else
+  //           pw.Table.fromTextArray(
+  //             headers: ['Product', 'Brand', 'RAM/ROM', 'IMEI', 'Serial', 'Warranty'],
+  //             headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+  //             headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+  //             cellAlignment: pw.Alignment.centerLeft,
+  //             data: List<List<String>>.from((bill['products'] ?? []).map((prod) => [
+  //               prod['productName'] ?? '-',
+  //               prod['brand'] ?? '-',
+  //               prod['ramRomSpecs'] ?? '-',
+  //               prod['imeiNo'] ?? '-',
+  //               prod['serialNo'] ?? '-',
+  //               prod['warranty'] ?? '-',
+  //             ])),
+  //           ),
+  //
+  //         pw.SizedBox(height: 20),
+  //
+  //         // Footer
+  //         pw.Divider(),
+  //         pw.Center(
+  //           child: pw.Text(
+  //             'Thank you for your business!',
+  //             style: pw.TextStyle(fontStyle: pw.FontStyle.italic, color: PdfColors.grey600),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  //
+  //   // Display the PDF in viewer or print
+  //   await Printing.layoutPdf(
+  //     onLayout: (PdfPageFormat format) async => pdf.save(),
+  //   );
+  // }
+
+
+  Future<void> generateInvoicePdf(Map<String, dynamic> ticket, String type) async {
+    final bill = ticket['invoiceDto'] ?? ticket; // Use invoiceDto if available
+
+    final pdf = pw.Document();
+
+    // Load your logo (replace with your actual asset)
+    final logo = await imageFromAssetBundle('assets/images.png');
 
     pdf.addPage(
-      pw.Page(
-        build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(24),
+        build: (context) => [
+          // Header with logo and title
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              pw.Text(journey, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 16),
-              pw.Text('Invoice Number: ${invoice['invoiceNumber'] ?? 'N/A'}'),
-              pw.Text('Invoice Date: ${invoice['invoiceDate'] ?? 'N/A'}'),
-              pw.Text('Customer Name: ${invoice['customerName'] ?? 'N/A'}'),
-              pw.Text('Phone: ${invoice['phoneNumber'] ?? 'N/A'}'),
-              pw.Text('GST ID: ${invoice['gstId'] ?? 'N/A'}'),
-              pw.SizedBox(height: 10),
-              pw.Text('Payments:', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-              ...List<pw.Widget>.from((invoice['payments'] ?? []).map<pw.Widget>((payment) {
-                return pw.Text(
-                  '${payment['modeOfPayment'] ?? 'N/A'}: ₹${payment['amount'] ?? 0}'
-                      '${payment['transactionId'] != null ? ' (Txn: ${payment['transactionId']})' : ''}'
-                      '${payment['paidAt'] != null ? ' on ${payment['paidAt']}' : ''}',
-                );
-              })),
+              pw.Image(logo, width: 80),
+              pw.Text(
+                '$type Invoice',
+                style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+              ),
             ],
-          );
-        },
+          ),
+          pw.SizedBox(height: 16),
+
+          // Bill / Customer Info
+          pw.Divider(),
+          pw.Text('Invoice Information', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 8),
+
+          pw.Text('Bill Number: ${bill['invoiceNumber'] ?? '-'}'),
+          pw.Text('Bill Date: ${bill['invoiceDate'] ?? '-'}'),
+          pw.Text('Customer Name: ${bill['customerName'] ?? '-'}'),
+          pw.Text('Phone: ${bill['phoneNumber'] ?? '-'}'),
+          pw.Text('GST ID: ${bill['gstId'] ?? '-'}'),
+          pw.Text('Place of Sale: ${ticket['storeName'] ?? '-'}'),
+          pw.Text('Profit: ₹${ticket['refurbishedCost'] != null && ticket['acquisitionCost'] != null ? (ticket['refurbishedCost'] - ticket['acquisitionCost']).toStringAsFixed(2) : 'N/A'}'),
+
+          pw.SizedBox(height: 12),
+
+          // Payments Section
+          pw.Text('Payments', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 8),
+
+          if ((bill['payments'] ?? []).isEmpty)
+            pw.Text('No payment records found.')
+          else
+            pw.Table.fromTextArray(
+              headers: ['Mode', 'Amount', 'Txn ID', 'Paid At'],
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+              cellAlignment: pw.Alignment.centerLeft,
+              data: (bill['payments'] ?? []).map<List<String>>((p) {
+                return [
+                  p['modeOfPayment']?.toString() ?? '-',
+                  p['amount'] != null ? '₹${p['amount'].toStringAsFixed(2)}' : '-',
+                  p['transactionId']?.toString() ?? '-',
+                  p['paidAt']?.toString() ?? '-',
+                ];
+              }).toList(),
+            ),
+
+          pw.SizedBox(height: 16),
+
+          // Products Section
+          pw.Text('Products', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 8),
+
+          if ((bill['products'] ?? [ticket]).isEmpty)
+            pw.Text('No products found.')
+          else
+            pw.Table.fromTextArray(
+              headers: ['Product', 'Brand', 'RAM/ROM', 'IMEI', 'Serial', 'Warranty'],
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+              headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+              cellAlignment: pw.Alignment.centerLeft,
+              data: (bill['products'] ?? [ticket]).map<List<String>>((prod) {
+                return [
+                  prod['productName']?.toString() ?? '-',
+                  prod['brand']?.toString() ?? '-',
+                  prod['ramRomSpecs']?.toString() ?? '-',
+                  prod['imeiNo']?.toString() ?? '-',
+                  prod['itemSerialNo']?.toString() ?? '-',
+                  prod['warranty']?.toString() ?? '-',
+                ];
+              }).toList(),
+            ),
+
+          pw.SizedBox(height: 20),
+
+          // Footer
+          pw.Divider(),
+          pw.Center(
+            child: pw.Text(
+              'Thank you for your business!',
+              style: pw.TextStyle(fontStyle: pw.FontStyle.italic, color: PdfColors.grey600),
+            ),
+          ),
+        ],
       ),
     );
 
-    // Ensure valid Uint8List output
-    final Uint8List pdfBytes = await pdf.save();
-
-    // Create blob and download link
-    final blob = html.Blob([pdfBytes], 'application/pdf');
-    final url = html.Url.createObjectUrlFromBlob(blob);
-
-    final anchor = html.AnchorElement(href: url)
-      ..setAttribute('download', 'invoice_${ticket['ticketId']}.pdf')
-      ..click();
-
-    html.Url.revokeObjectUrl(url);
+    // Print or view PDF
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+    );
   }
+
+
+
 
 
 }
@@ -929,7 +1349,7 @@ class StatusDropdown extends StatelessWidget {
       case 'QC':
         return ['LISTED', 'FACTORY', 'SCRAPED'];
       case 'LISTED':
-        return ['SCRAPED'];
+        return ['SCRAPED', 'QC'];
       case 'Factory':
         return ['QC', 'SCRAPED'];
       case 'Scraped':
